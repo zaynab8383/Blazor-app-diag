@@ -10,7 +10,8 @@ public enum MenuScreen
     Memo,
     SelectPage,
     Parameters,
-    Sensor
+    Sensor,
+    SoftwareList
 }
 
 public class MenuItem
@@ -100,6 +101,8 @@ public class DiagnosticMenuService
 
             switch (type)
             {
+
+
                 case "4":
                     ShowBoxPage(value);
                     break;
@@ -124,6 +127,10 @@ public class DiagnosticMenuService
                     ShowKeyboard(value);
                     break;
 
+                case "1":
+                    ShowSoftwareList(value);
+                    break;
+
                 default:
                     break;
             }
@@ -134,6 +141,38 @@ public class DiagnosticMenuService
         }
     }
 
+    private void ShowSoftwareList(string[] value)
+    {
+        State.Screen = MenuScreen.SoftwareList;
+
+        State.Header = "لیست نرم افزارها";
+
+        State.Items.Clear();
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (!value[i].StartsWith("R"))
+                continue;
+
+            if (i + 1 >= value.Length)
+                continue;
+
+            string text = value[i + 1].Trim();
+
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            // اطلاعات سریال را هم فعلاً به عنوان متن نگه می‌داریم
+            State.Items.Add(new MenuItem
+            {
+                Index = State.Items.Count,
+                Text = text,
+                Selected = false
+            });
+        }
+
+        Notify();
+    }
     private void ShowBoxPage(string[] value)
     {
         State.Screen = MenuScreen.BoxPage;
