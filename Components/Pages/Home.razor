@@ -170,6 +170,31 @@
 </div>
 }
 
+
+
+@if (MenuService.State.Screen == MenuScreen.SoftwareList)
+{
+    <div class="software-page">
+
+        <div class="software-header">
+            @MenuService.State.Header
+        </div>
+
+        <div class="software-content">
+
+            @foreach (var item in MenuService.State.Items)
+            {
+                <div class="software-row">
+                    @item.Text
+                </div>
+            }
+
+        </div>
+
+    </div>
+}
+
+
 @if (MenuService.State.Screen == MenuScreen.Message)
 {
 <div class="diagnostic-panel">
@@ -419,7 +444,38 @@
 </div>
 }
 
-<style> .diagnostic-panel { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px; background: #fafafa; } .diagnostic-button { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #aaa; border-radius: 5px; background: #eee; cursor: pointer; font-size: 16px; } .diagnostic-button:hover { background: #ddd; } </style>
+<style> 
+    .diagnostic-panel { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px; background: #fafafa; } 
+    .diagnostic-button { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #aaa; border-radius: 5px; background: #eee; cursor: pointer; font-size: 16px; } 
+    .diagnostic-button:hover { background: #ddd; } 
+    .software-page {
+        margin-top: 20px;
+        border: 1px solid #999;
+        border-radius: 6px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .software-header {
+        padding: 14px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        border-bottom: 1px solid #999;
+        background: #f2f2f2;
+    }
+
+    .software-content {
+        padding: 10px 15px;
+    }
+
+    .software-row {
+        padding: 9px 5px;
+        font-size: 16px;
+        border-bottom: 1px solid #ddd;
+        line-height: 1.7;
+    }
+</style>
 
 @code
 {
