@@ -1,0 +1,698 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using MyBlazorApp1.Services
+@using System.Text
+
+@implements IDisposable
+
+@inject MyBlazorApp1.Services.SerialService SerialService
+@inject MyBlazorApp1.Services.DiagnosticService DiagnosticService
+@inject MyBlazorApp1.Services.DiagnosticMenuService MenuService
+
+<h1>Diagnostic Bridge</h1>
+
+<hr />
+
+<h3>Serial Connection</h3>
+
+<div style="margin-bottom: 10px;">
+
+<label>COM Port:</label>
+
+<select @bind="SelectedPort">
+    @foreach (var port in Ports)
+    {
+        <option value="@port">@port</option>
+    }
+</select>
+
+<label style="margin-left: 15px;">Baud Rate:</label>
+
+<input type="number"
+       @bind="BaudRate"
+       style="width:100px;" />
+
+<button @onclick="Connect"
+        style="margin-left:15px;">
+    Connect
+</button>
+
+<button @onclick="Disconnect"
+        style="margin-left:5px;">
+    Disconnect
+</button>
+</div>
+
+<p> <strong>Status:</strong> @Status </p>
+
+<hr />
+
+<h3>Received Data</h3>
+
+<div style=" background:#111; color:#00ff00; padding:10px; min-height:80px; white-space:pre-wrap; font-family:monospace;"> @ReceivedData </div>
+
+<hr />
+
+<h3>Diagnostic Message</h3>
+
+<div style=" background:#f5f5f5; border:1px solid #ccc; padding:15px; min-height:80px; white-space:pre-wrap;"> @DiagnosticMessage </div>
+
+<p> <strong>Type:</strong> @DiagnosticType </p>
+
+<hr />
+
+@if (MenuService.State.Keyboard.Visible)
+{
+<div class="keyboard-panel">
+
+    <h2>
+        @MenuService.State.Keyboard.Header
+    </h2>
+
+    <input class="keyboard-input"
+           @bind="MenuService.State.Keyboard.Value"
+           readonly />
+
+    @if (MenuService.State.Keyboard.Mode == "Letters")
+    {
+        <div class="keyboard-grid">
+
+            @foreach (var key in LetterKeys)
+            {
+                <button class="key-button"
+                        @onclick="() => KeyboardKey(key)">
+                    @key
+                </button>
+            }
+
+        </div>
+    }
+
+    @if (MenuService.State.Keyboard.Mode == "Numbers")
+    {
+        <div class="keyboard-grid">
+
+            @foreach (var key in NumberKeys)
+            {
+                <button class="key-button"
+                        @onclick="() => KeyboardKey(key)">
+                    @key
+                </button>
+            }
+
+        </div>
+    }
+
+    @if (MenuService.State.Keyboard.Mode == "Characters")
+    {
+        <div class="keyboard-grid">
+
+            @foreach (var key in CharacterKeys)
+            {
+                <button class="key-button"
+                        @onclick="() => KeyboardKey(key)">
+                    @key
+                </button>
+            }
+
+        </div>
+    }
+
+    <div class="keyboard-actions">
+
+        <button class="keyboard-action"
+                @onclick="KeyboardNumbers">
+            123
+        </button>
+
+        <button class="keyboard-action"
+                @onclick="KeyboardCharacters">
+            کاراکترها
+        </button>
+
+        <button class="keyboard-action"
+                @onclick="KeyboardDelete">
+            DEL
+        </button>
+
+        <button class="keyboard-action"
+                @onclick="KeyboardCancel">
+            CANCEL
+        </button>
+
+        <button class="keyboard-action enter-button"
+                @onclick="KeyboardEnter">
+            ENTER
+        </button>
+
+    </div>
+
+</div>
+}
+
+@if (MenuService.State.Screen == MenuScreen.BoxPage)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    @foreach (var item in MenuService.State.Items)
+    {
+        <button class="diagnostic-button"
+                @onclick="() => SelectMenuItem(item.Index)">
+
+            @item.Text
+
+        </button>
+    }
+
+</div>
+}
+
+@if (MenuService.State.Screen == MenuScreen.Message)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    <div style="
+        padding:20px;
+        border:1px solid #ccc;
+        margin-bottom:15px;
+        white-space:pre-wrap;">
+
+        @MenuService.State.Message
+
+    </div>
+
+    <button class="diagnostic-button"
+            @onclick="ContinueMessage">
+
+        ادامه
+
+    </button>
+
+</div>
+}
+
+@* @if (MenuService.State.Screen == MenuScreen.Memo)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    @foreach (var record in MenuService.State.MemoRecords)
+    {
+        <div style="
+            border-bottom:1px solid #ddd;
+            padding:10px 0;">
+
+            <strong>@record.Title</strong>
+
+            @foreach (var line in record.Lines)
+            {
+                <div>@line</div>
+            }
+
+        </div>
+    }
+
+</div>
+} *@
+
+@if (MenuService.State.Screen == MenuScreen.Memo)
+{
+<div class="memo-page">
+
+    <h2>@MenuService.State.Header</h2>
+
+    @foreach (var record in MenuService.State.MemoRecords)
+    {
+        <div class="memo-record">
+
+            <div class="memo-title">
+                @record.Title
+            </div>
+
+            @foreach (var line in record.Lines)
+            {
+                <div class="memo-line">
+                    @line
+                </div>
+            }
+
+        </div>
+    }
+
+</div>
+}
+
+@if (MenuService.State.Screen == MenuScreen.SelectPage)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    @foreach (var item in MenuService.State.Items)
+    {
+        <div style="margin:8px 0;">
+
+            <input type="checkbox"
+                   checked="@item.Checked"
+                   @onchange="e => SetCheckBox(
+                                                       item.Index,
+                                                       (bool)e.Value!)" />
+<span style="margin-left:8px;"> @item.Text </span>
+
+        </div>
+    }
+
+</div>
+}
+
+@if (MenuService.State.Screen == MenuScreen.Parameters)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    <table style="
+        width:100%;
+        border-collapse:collapse;">
+
+        <thead>
+            <tr>
+                <th style="border:1px solid #ccc;padding:8px;">
+                    #
+                </th>
+
+                <th style="border:1px solid #ccc;padding:8px;">
+                    Parameter
+                </th>
+
+                <th style="border:1px solid #ccc;padding:8px;">
+                    Value
+                </th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var parameter in MenuService.State.Parameters)
+            {
+                <tr>
+
+                    <td style="border:1px solid #ccc;padding:8px;">
+                        @parameter.Index
+                    </td>
+
+                    <td style="border:1px solid #ccc;padding:8px;">
+                        @parameter.Text
+                    </td>
+
+                    <td style="border:1px solid #ccc;padding:8px;">
+                        @parameter.Value
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+    @if (MenuService.State.Items.Count > 0)
+    {
+        <div style="margin-top:15px;">
+
+            @foreach (var item in MenuService.State.Items)
+            {
+                <button class="diagnostic-button"
+                        @onclick="() => SelectMenuItem(item.Index)">
+
+                    @item.Text
+
+                </button>
+            }
+
+        </div>
+    }
+
+</div>
+}
+
+@if (MenuService.State.Screen == MenuScreen.Sensor)
+{
+<div class="diagnostic-panel">
+
+    <h3>@MenuService.State.Header</h3>
+
+    <table style="
+        width:100%;
+        border-collapse:collapse;">
+
+        <thead>
+            <tr>
+                <th style="border:1px solid #ccc;padding:8px;">
+                    #
+                </th>
+
+                <th style="border:1px solid #ccc;padding:8px;">
+                    Value
+                </th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var parameter in MenuService.State.Parameters)
+            {
+                <tr>
+
+                    <td style="border:1px solid #ccc;padding:8px;">
+                        @parameter.Index
+                    </td>
+
+                    <td style="border:1px solid #ccc;padding:8px;">
+                        @parameter.Value
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+    @if (MenuService.State.Items.Count > 0)
+    {
+        <div style="margin-top:15px;">
+
+            @foreach (var item in MenuService.State.Items)
+            {
+                <button class="diagnostic-button"
+                        @onclick="() => SelectSensorItem(item.Index)">
+
+                    @item.Text
+
+                </button>
+            }
+
+        </div>
+    }
+
+</div>
+}
+
+@if (MenuService.State.Screen != MenuScreen.None)
+{
+<div style="margin-top:20px;">
+
+    <button class="diagnostic-button"
+            @onclick="Back">
+
+        Back
+
+    </button>
+
+</div>
+}
+
+<style> .diagnostic-panel { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px; background: #fafafa; } .diagnostic-button { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #aaa; border-radius: 5px; background: #eee; cursor: pointer; font-size: 16px; } .diagnostic-button:hover { background: #ddd; } </style>
+
+@code
+{
+
+private readonly string[] LetterKeys =
+{
+"A", "B", "C", "D", "E", "F",
+"G", "H", "I", "J", "K", "L",
+"M", "N", "O", "P", "Q", "R",
+"S", "T", "U", "V", "W", "X",
+"Y", "Z"
+};
+
+private readonly string[] NumberKeys =
+{
+"1", "2", "3",
+"4", "5", "6",
+"7", "8", "9",
+"0"
+};
+
+private readonly string[] CharacterKeys =
+{
+".", ",", "-", "_",
+"/", "\\", "@", "#",
+"(", ")", "+", "*",
+":", ";", "!", "?",
+" "
+};
+
+private void KeyboardKey(string key)
+{
+    MenuService.State.Keyboard.Value += key;
+
+    Console.WriteLine(
+        $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
+
+    StateHasChanged();
+}
+
+private void KeyboardNumbers()
+{
+    MenuService.State.Keyboard.Mode = "Numbers";
+
+    StateHasChanged();
+}
+
+private void KeyboardCharacters()
+{
+    MenuService.State.Keyboard.Mode = "Characters";
+
+    StateHasChanged();
+}
+
+private void KeyboardDelete()
+{
+    string value = MenuService.State.Keyboard.Value;
+
+    if (!string.IsNullOrEmpty(value))
+        MenuService.State.Keyboard.Value = value[..^1];
+
+    StateHasChanged();
+}
+
+private void KeyboardCancel()
+{
+    MenuService.State.Keyboard.Visible = false;
+
+    MenuService.State.Screen =
+        MenuService.State.Keyboard.PreviousScreen;
+
+    StateHasChanged();
+}
+
+// private void KeyboardEnter()
+// {
+//     Console.WriteLine("========== KEYBOARD ENTER ==========");
+//     Console.WriteLine($"Keyboard Value: {MenuService.State.Keyboard.Value}");
+//     Console.WriteLine($"Previous Screen: {MenuService.State.Keyboard.PreviousScreen}");
+//     Console.WriteLine("====================================");
+// }
+//     private void KeyboardEnter()
+// {
+//     string value = MenuService.State.Keyboard.Value;
+
+//     if (string.IsNullOrEmpty(value))
+//         return;
+
+//     byte[] data = Encoding.UTF8.GetBytes(value + "\r\n");
+
+//     SerialService.Send(data);
+
+//     MenuService.State.Keyboard.Visible = false;
+
+//     StateHasChanged();
+// }
+private void KeyboardEnter()
+{
+    Console.WriteLine("========== KEYBOARD ENTER ==========");
+
+    string value = MenuService.State.Keyboard.Value;
+
+    Console.WriteLine($"VALUE = [{value}]");
+
+    byte[] data =
+        System.Text.Encoding.UTF8.GetBytes(value + "\r\n");
+
+    Console.WriteLine("SENDING VALUE...");
+
+    SerialService.Send(data);
+
+    Console.WriteLine("SEND FINISHED");
+
+    StateHasChanged();
+}
+private string[] Ports = Array.Empty<string>();
+
+private string SelectedPort = "";
+
+private int BaudRate = 9600;
+
+private string Status = "Disconnected";
+
+private string ReceivedData = "";
+
+private string DiagnosticMessage = "";
+
+private string DiagnosticType = "";
+
+protected override void OnInitialized()
+{
+    Ports = SerialService.GetPorts();
+
+    if (Ports.Length > 0)
+    {
+        SelectedPort = Ports[0];
+    }
+
+    SerialService.DataReceived += OnSerialDataReceived;
+
+    DiagnosticService.MessageReceived +=
+        OnDiagnosticMessageReceived;
+
+    DiagnosticService.DiagnosticDataReceived +=
+        OnDiagnosticDataReceived;
+
+    MenuService.StateChanged +=
+        OnMenuStateChanged;
+
+    DiagnosticService.Start();
+}
+
+private void OnSerialDataReceived(string data)
+{
+    _ = InvokeAsync(() =>
+    {
+        ReceivedData = data;
+
+        StateHasChanged();
+    });
+}
+
+private void OnDiagnosticMessageReceived(string message)
+{
+    _ = InvokeAsync(() =>
+    {
+        DiagnosticMessage = message;
+
+        StateHasChanged();
+    });
+}
+
+private void OnDiagnosticDataReceived(string[] data)
+{
+    _ = InvokeAsync(() =>
+    {
+        if (data.Length > 1)
+        {
+            DiagnosticType = data[1];
+        }
+
+        StateHasChanged();
+    });
+}
+
+private void OnMenuStateChanged()
+{
+    _ = InvokeAsync(() =>
+    {
+        StateHasChanged();
+    });
+}
+
+private void Connect()
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(SelectedPort))
+        {
+            Status = "No COM port selected";
+            return;
+        }
+
+        SerialService.Connect(
+            SelectedPort,
+            BaudRate);
+
+        Status =
+            $"Connected to {SelectedPort}";
+
+        StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+        Status =
+            $"Error: {ex.Message}";
+
+        StateHasChanged();
+    }
+}
+
+private void Disconnect()
+{
+    SerialService.Disconnect();
+
+    Status = "Disconnected";
+
+    StateHasChanged();
+}
+
+private void SelectMenuItem(int index)
+{
+    MenuService.SelectMenuItem(index);
+}
+
+private void SelectSensorItem(int index)
+{
+    MenuService.SelectSensorItem(index);
+}
+
+private void SetCheckBox(
+    int index,
+    bool value)
+{
+    MenuService.SetCheckBox(
+        index,
+        value);
+}
+
+private void ContinueMessage()
+{
+    MenuService.ContinueMessage();
+}
+
+private void Back()
+{
+    MenuService.Back();
+}
+
+public void Dispose()
+{
+    SerialService.DataReceived -=
+        OnSerialDataReceived;
+
+    DiagnosticService.MessageReceived -=
+        OnDiagnosticMessageReceived;
+
+    DiagnosticService.DiagnosticDataReceived -=
+        OnDiagnosticDataReceived;
+
+    MenuService.StateChanged -=
+        OnMenuStateChanged;
+
+    DiagnosticService.Stop();
+}
+}
