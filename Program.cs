@@ -8,25 +8,47 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 
+// =========================================================
+// SERVICES
+// =========================================================
+
 builder.Services.AddSingleton<UdpServer>();
-builder.Services.AddSingleton<DiagnosticService>();
-builder.Services.AddSingleton<SerialService>();
-builder.Services.AddSingleton<DiagnosticMenuService>();
+
 builder.Services.AddSingleton<DiagnosticTcpServerService>();
+
+builder.Services.AddSingleton<DiagnosticService>();
+
+builder.Services.AddSingleton<DiagnosticMenuService>();
+
+
+// =========================================================
+// SERIAL
+// =========================================================
+
+
+builder.Services.AddSingleton<SerialService>();
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
+// =========================================================
+// HTTP REQUEST PIPELINE
+// =========================================================
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler(
+        "/Error",
+        createScopeForErrors: true);
+
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()

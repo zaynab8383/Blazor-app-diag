@@ -5,6 +5,7 @@
 
 @implements IDisposable
 
+@inject DiagnosticMenuService MenuService
 @inject DiagnosticTcpServerService TcpServer
 @inject DiagnosticService DiagnosticService
 
@@ -125,17 +126,21 @@
 {
     private readonly List<string> logs = new();
 
+
     protected override void OnInitialized()
     {
         TcpServer.LogReceived += OnLogReceived;
     }
 
+
     private async Task StartServer()
     {
         try
         {
+            // شروع TCP Server
             await TcpServer.StartAsync(9000);
 
+            // شروع پردازش Diagnostic
             DiagnosticService.Start();
 
             AddLog(
@@ -151,24 +156,29 @@
             StateHasChanged);
     }
 
+
     private void StopServer()
     {
+        // توقف پردازش Diagnostic
         DiagnosticService.Stop();
 
+        // توقف TCP Server
         TcpServer.Stop();
 
         AddLog(
             "DiagnosticService stopped.");
 
-        InvokeAsync(
+        _ = InvokeAsync(
             StateHasChanged);
     }
+
 
     private void OnLogReceived(
         string message)
     {
         AddLog(message);
     }
+
 
     private void AddLog(
         string message)
@@ -185,16 +195,19 @@
             StateHasChanged);
     }
 
+
     private void ClearLogs()
     {
         logs.Clear();
 
-        InvokeAsync(
+        _ = InvokeAsync(
             StateHasChanged);
     }
+
 
     public void Dispose()
     {
         TcpServer.LogReceived -= OnLogReceived;
     }
 }
+

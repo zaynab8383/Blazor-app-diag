@@ -32,16 +32,6 @@ public class MemoRecord
     public List<string> Lines { get; set; } = new();
 }
 
-//public class DiagnosticParameter
-//{
-//    public int Index { get; set; }
-
-//    public string Text { get; set; } = "";
-
-//    public string Value { get; set; } = "";
-//}
-
-
 public class DiagnosticParameter
 {
     public int Index { get; set; }
@@ -68,6 +58,7 @@ public class MenuState
     public string Header { get; set; } = "";
 
     public string Message { get; set; } = "";
+
     public KeyboardState Keyboard { get; set; } = new();
 
     public List<MenuItem> Items { get; set; } = new();
@@ -87,8 +78,10 @@ public class KeyboardState
 
     public string Mode { get; set; } = "Letters";
 
-    public MenuScreen PreviousScreen { get; set; } = MenuScreen.None;
+    public MenuScreen PreviousScreen { get; set; } =
+        MenuScreen.None;
 }
+
 public class DiagnosticMenuService
 {
     private readonly DiagnosticService _diagnosticService;
@@ -107,53 +100,25 @@ public class DiagnosticMenuService
             OnDiagnosticDataReceived;
     }
 
+
+    // =========================================================
+    // دریافت اطلاعات Diagnostic
+    // =========================================================
+
     private void OnDiagnosticDataReceived(
         string[] value)
     {
         try
         {
-            if (value == null || value.Length < 2)
+            if (value == null ||
+                value.Length < 2)
+            {
                 return;
+            }
+
             State.Keyboard.Visible = false;
 
             string type = value[1];
-
-            //switch (type)
-            //{
-
-
-            //    case "4":
-            //        ShowBoxPage(value);
-            //        break;
-
-            //    case "14":
-            //        ShowMessage(value);
-            //        break;
-
-            //    case "5":
-            //        ShowSelectPage(value);
-            //        break;
-
-            //    case "20":
-            //        ShowParameters(value);
-            //        break;
-
-            //    case "21":
-            //        ShowSensor(value);
-            //        break;
-
-            //    case "10":
-            //        ShowKeyboard(value);
-            //        break;
-
-            //    case "1":
-            //        ShowSoftwareList(value);
-            //        break;
-
-            //    default:
-            //        break;
-            //}
-
 
             switch (type)
             {
@@ -192,24 +157,33 @@ public class DiagnosticMenuService
                 default:
                     break;
             }
-
-
         }
-        catch
+        catch (Exception ex)
         {
-            // فعلاً خطای پردازش منو را نادیده می‌گیریم
+            Console.WriteLine(
+                $"DiagnosticMenuService error: {ex.Message}");
         }
     }
 
-    private void ShowSoftwareList(string[] value)
-    {
-        State.Screen = MenuScreen.SoftwareList;
 
-        State.Header = "لیست نرم افزارها";
+    // =========================================================
+    // Software List
+    // =========================================================
+
+    private void ShowSoftwareList(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.SoftwareList;
+
+        State.Header =
+            "لیست نرم افزارها";
 
         State.Items.Clear();
 
-        for (int i = 0; i < value.Length; i++)
+        for (int i = 0;
+             i < value.Length;
+             i++)
         {
             if (!value[i].StartsWith("R"))
                 continue;
@@ -217,27 +191,37 @@ public class DiagnosticMenuService
             if (i + 1 >= value.Length)
                 continue;
 
-            string text = value[i + 1].Trim();
+            string text =
+                value[i + 1].Trim();
 
             if (string.IsNullOrWhiteSpace(text))
                 continue;
 
-            // اطلاعات سریال را هم فعلاً به عنوان متن نگه می‌داریم
-            State.Items.Add(new MenuItem
-            {
-                Index = State.Items.Count,
-                Text = text,
-                Selected = false
-            });
+            State.Items.Add(
+                new MenuItem
+                {
+                    Index = State.Items.Count,
+                    Text = text,
+                    Selected = false
+                });
         }
 
         Notify();
     }
-    private void ShowBoxPage(string[] value)
-    {
-        State.Screen = MenuScreen.BoxPage;
 
-        State.Header = GetHeader(value);
+
+    // =========================================================
+    // Box Page - Type 4
+    // =========================================================
+
+    private void ShowBoxPage(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.BoxPage;
+
+        State.Header =
+            GetHeader(value);
 
         State.Items.Clear();
 
@@ -247,18 +231,23 @@ public class DiagnosticMenuService
             return;
         }
 
-        int count = ParseInt(value[6]);
+        int count =
+            ParseInt(value[6]);
 
-        int selectedIndex = ParseInt(value[8]);
+        int selectedIndex =
+            ParseInt(value[8]);
 
         int counter = 9;
 
-        for (int i = 0;
-             i < count && counter + 2 < value.Length;
-             i++)
+        for (
+            int i = 0;
+            i < count &&
+            counter + 2 < value.Length;
+            i++)
         {
             string text =
-                !string.IsNullOrWhiteSpace(value[counter + 2])
+                !string.IsNullOrWhiteSpace(
+                    value[counter + 2])
                     ? value[counter + 2]
                     : value[counter + 1];
 
@@ -267,7 +256,8 @@ public class DiagnosticMenuService
                 {
                     Index = i,
                     Text = text,
-                    Selected = i == selectedIndex
+                    Selected =
+                        i == selectedIndex
                 });
 
             counter += 3;
@@ -276,11 +266,19 @@ public class DiagnosticMenuService
         Notify();
     }
 
-    private void ShowMessage(string[] value)
-    {
-        State.Screen = MenuScreen.Message;
 
-        State.Header = GetHeader(value);
+    // =========================================================
+    // Message - Type 14
+    // =========================================================
+
+    private void ShowMessage(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.Message;
+
+        State.Header =
+            GetHeader(value);
 
         State.Message =
             value.Length > 4
@@ -290,13 +288,22 @@ public class DiagnosticMenuService
         Notify();
     }
 
-    private void ShowKeyboard(string[] value)
+
+    // =========================================================
+    // Keyboard - Type 10
+    // =========================================================
+
+    private void ShowKeyboard(
+        string[] value)
     {
-        State.Keyboard.PreviousScreen = State.Screen;
+        State.Keyboard.PreviousScreen =
+            State.Screen;
 
-        State.Screen = MenuScreen.None;
+        State.Screen =
+            MenuScreen.None;
 
-        State.Keyboard.Visible = true;
+        State.Keyboard.Visible =
+            true;
 
         State.Keyboard.Header =
             value.Length > 3
@@ -308,16 +315,25 @@ public class DiagnosticMenuService
                 ? value[4]
                 : "";
 
-        State.Keyboard.Mode = "Letters";
+        State.Keyboard.Mode =
+            "Letters";
 
         Notify();
     }
 
-    private void ShowSelectPage(string[] value)
-    {
-        State.Screen = MenuScreen.SelectPage;
 
-        State.Header = GetHeader(value);
+    // =========================================================
+    // Select Page - Type 5
+    // =========================================================
+
+    private void ShowSelectPage(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.SelectPage;
+
+        State.Header =
+            GetHeader(value);
 
         State.Items.Clear();
 
@@ -327,18 +343,23 @@ public class DiagnosticMenuService
             return;
         }
 
-        int count = ParseInt(value[6]);
+        int count =
+            ParseInt(value[6]);
 
-        int selectedIndex = ParseInt(value[8]);
+        int selectedIndex =
+            ParseInt(value[8]);
 
         int counter = 9;
 
-        for (int i = 0;
-             i < count && counter + 2 < value.Length;
-             i++)
+        for (
+            int i = 0;
+            i < count &&
+            counter + 2 < value.Length;
+            i++)
         {
             string text =
-                !string.IsNullOrWhiteSpace(value[counter + 2])
+                !string.IsNullOrWhiteSpace(
+                    value[counter + 2])
                     ? value[counter + 2]
                     : value[counter + 1];
 
@@ -347,7 +368,8 @@ public class DiagnosticMenuService
                 {
                     Index = i,
                     Text = text,
-                    Checked = i == selectedIndex
+                    Checked =
+                        i == selectedIndex
                 });
 
             counter += 3;
@@ -356,79 +378,19 @@ public class DiagnosticMenuService
         Notify();
     }
 
-    //private void ShowParameters(string[] value)
-    //{
-    //    State.Screen = MenuScreen.Parameters;
 
-    //    State.Header =
-    //        value.Length > 3
-    //            ? value[3]
-    //            : "";
+    // =========================================================
+    // Parameters - Type 20
+    // =========================================================
 
-    //    State.Parameters.Clear();
-    //    State.Items.Clear();
-
-    //    if (value.Length < 10)
-    //    {
-    //        Notify();
-    //        return;
-    //    }
-
-    //    int count1 = ParseInt(value[5]);
-
-    //    int count2 = ParseInt(value[7]);
-
-    //    int selectedIndex = ParseInt(value[9]);
-
-    //    int counter = 10;
-
-    //    for (int i = 0;
-    //         i < count1 && counter + 4 < value.Length;
-    //         i++)
-    //    {
-    //        State.Parameters.Add(
-    //            new DiagnosticParameter
-    //            {
-    //                Index = i,
-    //                Text = value[counter + 1],
-    //                Value = value[counter + 2]
-    //            });
-
-    //        counter += 5;
-    //    }
-
-    //    for (int i = 0;
-    //         i < count2 && counter + 2 < value.Length;
-    //         i++)
-    //    {
-    //        string text =
-    //            !string.IsNullOrWhiteSpace(value[counter + 2])
-    //                ? value[counter + 2]
-    //                : value[counter + 1];
-
-    //        State.Items.Add(
-    //            new MenuItem
-    //            {
-    //                Index = i,
-    //                Text = text,
-    //                Selected = i == selectedIndex
-    //            });
-
-    //        counter += 3;
-    //    }
-
-    //    Notify();
-    //}
-
-
-
-
-
-    private void ShowParameters(string[] value)
+    private void ShowParameters(
+        string[] value)
     {
-        State.Screen = MenuScreen.Parameters;
+        State.Screen =
+            MenuScreen.Parameters;
 
-        State.Header = "پارامترها";
+        State.Header =
+            "پارامترها";
 
         State.Parameters.Clear();
 
@@ -442,12 +404,16 @@ public class DiagnosticMenuService
 
         if (value[2].Trim() == "Count")
         {
-            count = ParseInt(value[3]);
+            count =
+                ParseInt(value[3]);
         }
 
         int counter = 4;
 
-        for (int i = 0; i < count; i++)
+        for (
+            int i = 0;
+            i < count;
+            i++)
         {
             if (counter + 4 >= value.Length)
                 break;
@@ -457,10 +423,17 @@ public class DiagnosticMenuService
                 {
                     Index = i,
 
-                    Col0 = value[counter + 1].Trim(),
-                    Col1 = value[counter + 2].Trim(),
-                    Col2 = value[counter + 3].Trim(),
-                    Col3 = value[counter + 4].Trim(),
+                    Col0 =
+                        value[counter + 1].Trim(),
+
+                    Col1 =
+                        value[counter + 2].Trim(),
+
+                    Col2 =
+                        value[counter + 3].Trim(),
+
+                    Col3 =
+                        value[counter + 4].Trim(),
 
                     CurrentValue = "",
 
@@ -474,8 +447,12 @@ public class DiagnosticMenuService
     }
 
 
+    // =========================================================
+    // Parameters Refresh - Type 20.2
+    // =========================================================
 
-    private void RefreshParameters(string[] value)
+    private void RefreshParameters(
+        string[] value)
     {
         if (State.Parameters.Count == 0)
             return;
@@ -487,32 +464,51 @@ public class DiagnosticMenuService
 
         if (value[2].Trim() == "Count")
         {
-            count = ParseInt(value[3]);
+            count =
+                ParseInt(value[3]);
         }
 
-        foreach (var parameter in State.Parameters)
+        foreach (
+            var parameter in
+            State.Parameters)
         {
             parameter.IsActive = false;
-            parameter.CurrentValue = "^^^^";
+
+            parameter.CurrentValue =
+                "^^^^";
         }
 
         int counter = 4;
 
-        for (int i = 0; i < count; i++)
+        for (
+            int i = 0;
+            i < count;
+            i++)
         {
             if (counter + 1 >= value.Length)
                 break;
 
-            int rowIndex = ParseInt(value[counter]);
+            int rowIndex =
+                ParseInt(value[counter]);
 
             string currentValue =
                 value[counter + 1].Trim();
 
-            if (rowIndex >= 0 && rowIndex < State.Parameters.Count)
+            if (
+                rowIndex >= 0 &&
+                rowIndex < State.Parameters.Count)
             {
-                State.Parameters[rowIndex].CurrentValue = currentValue;
-                State.Parameters[rowIndex].Value = currentValue;
-                State.Parameters[rowIndex].IsActive = true;
+                State.Parameters[rowIndex]
+                    .CurrentValue =
+                    currentValue;
+
+                State.Parameters[rowIndex]
+                    .Value =
+                    currentValue;
+
+                State.Parameters[rowIndex]
+                    .IsActive =
+                    true;
             }
 
             counter += 2;
@@ -521,9 +517,16 @@ public class DiagnosticMenuService
         Notify();
     }
 
-    private void ShowSensor(string[] value)
+
+    // =========================================================
+    // Sensor - Type 21
+    // =========================================================
+
+    private void ShowSensor(
+        string[] value)
     {
-        State.Screen = MenuScreen.Sensor;
+        State.Screen =
+            MenuScreen.Sensor;
 
         State.Header =
             value.Length > 3
@@ -531,61 +534,32 @@ public class DiagnosticMenuService
                 : "";
 
         State.Parameters.Clear();
+
         State.Items.Clear();
 
         Notify();
     }
 
-    //public void SelectMenuItem(int index)
-    //{
-    //    _diagnosticService.Send(
-    //        index.ToString());
-    //}
 
-    //public void SelectSensorItem(int index)
-    //{
-    //    _diagnosticService.Send(
-    //        index.ToString());
-    //}
+    // =========================================================
+    // COMMANDS
+    // =========================================================
 
-    //public void SetCheckBox(
-    //    int index,
-    //    bool checkedValue)
-    //{
-    //    string command =
-    //        $"{index},{(checkedValue ? 1 : 0)}";
-
-    //    _diagnosticService.Send(command);
-    //}
-
-    //public void ContinueMessage()
-    //{
-    //    _diagnosticService.Send("0");
-    //}
-
-    //public void Back()
-    //{
-    //    _diagnosticService.Send("-1");
-    //}
-
-    //public void Back2()
-    //{
-    //    _diagnosticService.Send("-2");
-    //}
-
-
-
-    public async Task SelectMenuItem(int index)
+    public async Task SelectMenuItem(
+        int index)
     {
-        await _diagnosticService.Send(
+        await _diagnosticService.SendAsync(
             index.ToString());
     }
 
-    public async Task SelectSensorItem(int index)
+
+    public async Task SelectSensorItem(
+        int index)
     {
-        await _diagnosticService.Send(
+        await _diagnosticService.SendAsync(
             index.ToString());
     }
+
 
     public async Task SetCheckBox(
         int index,
@@ -594,30 +568,40 @@ public class DiagnosticMenuService
         string command =
             $"{index},{(checkedValue ? 1 : 0)}";
 
-        await _diagnosticService.Send(command);
+        await _diagnosticService.SendAsync(
+            command);
     }
+
 
     public async Task ContinueMessage()
     {
-        await _diagnosticService.Send("0");
+        await _diagnosticService.SendAsync("0");
     }
+
 
     public async Task Back()
     {
-        await _diagnosticService.Send("-1");
+        await _diagnosticService.SendAsync("-1");
     }
+
 
     public async Task Back2()
     {
-        await _diagnosticService.Send("-2");
+        await _diagnosticService.SendAsync("-2");
     }
 
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
 
     private static string GetHeader(
         string[] value)
     {
-        if (value.Length > 4 &&
-            !string.IsNullOrWhiteSpace(value[3]))
+        if (
+            value.Length > 4 &&
+            !string.IsNullOrWhiteSpace(
+                value[3]))
         {
             return value[3];
         }
@@ -630,7 +614,9 @@ public class DiagnosticMenuService
         return "";
     }
 
-    private static int ParseInt(string value)
+
+    private static int ParseInt(
+        string value)
     {
         return int.TryParse(
             value,
@@ -638,6 +624,7 @@ public class DiagnosticMenuService
                 ? result
                 : 0;
     }
+
 
     private void Notify()
     {

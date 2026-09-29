@@ -15,9 +15,7 @@ public class DiagnosticService : IDisposable
     };
 
     public event Action<string>? RawDataReceived;
-
     public event Action<string>? MessageReceived;
-
     public event Action<string[]>? DiagnosticDataReceived;
 
     public bool IsRunning { get; private set; }
@@ -27,30 +25,59 @@ public class DiagnosticService : IDisposable
     {
         _tcpServer = tcpServer;
 
+        // =========================================
+        // دریافت فقط از TCP
+        // =========================================
+
         _tcpServer.DataReceived += OnTcpDataReceived;
     }
+
+    // =========================================
+    // TCP RECEIVE
+    // =========================================
 
     private void OnTcpDataReceived(byte[] data)
     {
         if (!IsRunning)
             return;
 
-        string hexData = Convert.ToHexString(data)
-            .Replace("-", " ");
+        if (data == null || data.Length == 0)
+            return;
 
-        RawDataReceived?.Invoke(hexData);
+        ProcessReceivedBytes(data);
+    }
 
+    // =========================================
+    // COMMON RECEIVE PROCESSING
+    // =========================================
+
+    private void ProcessReceivedBytes(byte[] bytes)
+    {
         try
         {
-            _receiveBuffer.AddRange(data);
+            // نمایش RAW HEX
+            string hex =
+                Convert.ToHexString(bytes)
+                    .Replace("-", " ");
 
+            RawDataReceived?.Invoke(hex);
+
+            // اضافه کردن داده به بافر
+            _receiveBuffer.AddRange(bytes);
+
+            // پردازش پیام‌ها
             ProcessReceiveBuffer();
         }
-        catch
+        catch (Exception ex)
         {
-            // فعلاً خطای دریافت را نادیده می‌گیریم
+            Console.WriteLine(
+                $"Diagnostic receive processing error: {ex.Message}");
         }
     }
+
+    // =========================================
+    // MESSAGE BUFFER
+    // =========================================
 
     private void ProcessReceiveBuffer()
     {
@@ -58,6 +85,7 @@ public class DiagnosticService : IDisposable
         {
             int endIndex = FindMessageEnd();
 
+            // هنوز پیام کامل نشده
             if (endIndex < 0)
                 return;
 
@@ -82,16 +110,22 @@ public class DiagnosticService : IDisposable
         }
     }
 
+    // =========================================
+    // FIND ◆ DELIMITER
+    // =========================================
+
     private int FindMessageEnd()
     {
         if (_receiveBuffer.Count < 3)
             return -1;
 
-        for (int i = 0;
-             i <= _receiveBuffer.Count - 3;
-             i++)
+        for (
+            int i = 0;
+            i <= _receiveBuffer.Count - 3;
+            i++)
         {
-            if (_receiveBuffer[i] == 0xE2 &&
+            if (
+                _receiveBuffer[i] == 0xE2 &&
                 _receiveBuffer[i + 1] == 0x97 &&
                 _receiveBuffer[i + 2] == 0x89)
             {
@@ -102,8 +136,13 @@ public class DiagnosticService : IDisposable
         return -1;
     }
 
+    // =========================================
+    // DIAGNOSTIC MESSAGE
+    // =========================================
+
     private void ProcessMessage(string message)
     {
+        Console.WriteLine();
         Console.WriteLine(
             "========== DIAGNOSTIC MESSAGE ==========");
 
@@ -111,17 +150,43 @@ public class DiagnosticService : IDisposable
 
         Console.WriteLine(
             "=========================================");
+        Console.WriteLine();
 
-        string[] parts = ParseMessage(message);
+        string[] parts =
+            ParseMessage(message);
+        Console.WriteLine();
+        Console.WriteLine("========== PARSED DATA ==========");
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            Console.WriteLine($"[{i}] = [{parts[i]}]");
+        }
+
+        Console.WriteLine("=================================");
+
+
+
 
         if (parts.Length == 0)
             return;
 
+        // مثال:
+        //
+        // ◆Type◆14◆Message◆...
+        //
+        // یا
+        //
+        // ◆Type◆20◆Count◆...
+        //
         if (parts[0] == "Type")
         {
             DiagnosticDataReceived?.Invoke(parts);
         }
     }
+
+    // =========================================
+    // PARSE ◆...◆
+    // =========================================
 
     private string[] ParseMessage(string message)
     {
@@ -144,22 +209,41 @@ public class DiagnosticService : IDisposable
         return result.ToArray();
     }
 
+    // =========================================
+    // START
+    // =========================================
+
     public void Start()
     {
         IsRunning = true;
 
-        _receiveBuffer.Clear();
+        Console.WriteLine(
+            "DiagnosticService started.");
     }
+
+    // =========================================
+    // STOP
+    // =========================================
 
     public void Stop()
     {
         IsRunning = false;
 
         _receiveBuffer.Clear();
+
+        Console.WriteLine(
+            "DiagnosticService stopped.");
     }
 
-    public async Task Send(string command)
+    // =========================================
+    // SEND COMMAND THROUGH TCP
+    // =========================================
+
+    public async Task SendAsync(string command)
     {
+        if (string.IsNullOrWhiteSpace(command))
+            return;
+
         if (!_tcpServer.IsClientConnected)
         {
             throw new InvalidOperationException(
@@ -171,11 +255,19 @@ public class DiagnosticService : IDisposable
                 command + "\n");
 
         await _tcpServer.SendAsync(data);
+
+        Console.WriteLine(
+            $"Diagnostic TX: {command}");
     }
+
+    // =========================================
+    // DISPOSE
+    // =========================================
 
     public void Dispose()
     {
-        _tcpServer.DataReceived -= OnTcpDataReceived;
+        _tcpServer.DataReceived -=
+            OnTcpDataReceived;
 
         _receiveBuffer.Clear();
     }
