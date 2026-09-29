@@ -32,13 +32,32 @@ public class MemoRecord
     public List<string> Lines { get; set; } = new();
 }
 
+//public class DiagnosticParameter
+//{
+//    public int Index { get; set; }
+
+//    public string Text { get; set; } = "";
+
+//    public string Value { get; set; } = "";
+//}
+
+
 public class DiagnosticParameter
 {
     public int Index { get; set; }
 
-    public string Text { get; set; } = "";
+    public string Col0 { get; set; } = "";
+    public string Col1 { get; set; } = "";
+    public string Col2 { get; set; } = "";
+    public string Col3 { get; set; } = "";
 
+    // برای سازگاری با کد قبلی
     public string Value { get; set; } = "";
+
+    // مقدار لحظه‌ای که از Type 20.2 می‌آید
+    public string CurrentValue { get; set; } = "";
+
+    public bool IsActive { get; set; }
 }
 
 public class MenuState
@@ -99,10 +118,45 @@ public class DiagnosticMenuService
 
             string type = value[1];
 
+            //switch (type)
+            //{
+
+
+            //    case "4":
+            //        ShowBoxPage(value);
+            //        break;
+
+            //    case "14":
+            //        ShowMessage(value);
+            //        break;
+
+            //    case "5":
+            //        ShowSelectPage(value);
+            //        break;
+
+            //    case "20":
+            //        ShowParameters(value);
+            //        break;
+
+            //    case "21":
+            //        ShowSensor(value);
+            //        break;
+
+            //    case "10":
+            //        ShowKeyboard(value);
+            //        break;
+
+            //    case "1":
+            //        ShowSoftwareList(value);
+            //        break;
+
+            //    default:
+            //        break;
+            //}
+
+
             switch (type)
             {
-
-
                 case "4":
                     ShowBoxPage(value);
                     break;
@@ -117,6 +171,10 @@ public class DiagnosticMenuService
 
                 case "20":
                     ShowParameters(value);
+                    break;
+
+                case "20.2":
+                    RefreshParameters(value);
                     break;
 
                 case "21":
@@ -134,6 +192,8 @@ public class DiagnosticMenuService
                 default:
                     break;
             }
+
+
         }
         catch
         {
@@ -296,65 +356,166 @@ public class DiagnosticMenuService
         Notify();
     }
 
+    //private void ShowParameters(string[] value)
+    //{
+    //    State.Screen = MenuScreen.Parameters;
+
+    //    State.Header =
+    //        value.Length > 3
+    //            ? value[3]
+    //            : "";
+
+    //    State.Parameters.Clear();
+    //    State.Items.Clear();
+
+    //    if (value.Length < 10)
+    //    {
+    //        Notify();
+    //        return;
+    //    }
+
+    //    int count1 = ParseInt(value[5]);
+
+    //    int count2 = ParseInt(value[7]);
+
+    //    int selectedIndex = ParseInt(value[9]);
+
+    //    int counter = 10;
+
+    //    for (int i = 0;
+    //         i < count1 && counter + 4 < value.Length;
+    //         i++)
+    //    {
+    //        State.Parameters.Add(
+    //            new DiagnosticParameter
+    //            {
+    //                Index = i,
+    //                Text = value[counter + 1],
+    //                Value = value[counter + 2]
+    //            });
+
+    //        counter += 5;
+    //    }
+
+    //    for (int i = 0;
+    //         i < count2 && counter + 2 < value.Length;
+    //         i++)
+    //    {
+    //        string text =
+    //            !string.IsNullOrWhiteSpace(value[counter + 2])
+    //                ? value[counter + 2]
+    //                : value[counter + 1];
+
+    //        State.Items.Add(
+    //            new MenuItem
+    //            {
+    //                Index = i,
+    //                Text = text,
+    //                Selected = i == selectedIndex
+    //            });
+
+    //        counter += 3;
+    //    }
+
+    //    Notify();
+    //}
+
+
+
+
+
     private void ShowParameters(string[] value)
     {
         State.Screen = MenuScreen.Parameters;
 
-        State.Header =
-            value.Length > 3
-                ? value[3]
-                : "";
+        State.Header = "پارامترها";
 
         State.Parameters.Clear();
-        State.Items.Clear();
 
-        if (value.Length < 10)
+        if (value.Length < 4)
         {
             Notify();
             return;
         }
 
-        int count1 = ParseInt(value[5]);
+        int count = 0;
 
-        int count2 = ParseInt(value[7]);
-
-        int selectedIndex = ParseInt(value[9]);
-
-        int counter = 10;
-
-        for (int i = 0;
-             i < count1 && counter + 4 < value.Length;
-             i++)
+        if (value[2].Trim() == "Count")
         {
+            count = ParseInt(value[3]);
+        }
+
+        int counter = 4;
+
+        for (int i = 0; i < count; i++)
+        {
+            if (counter + 4 >= value.Length)
+                break;
+
             State.Parameters.Add(
                 new DiagnosticParameter
                 {
                     Index = i,
-                    Text = value[counter + 1],
-                    Value = value[counter + 2]
+
+                    Col0 = value[counter + 1].Trim(),
+                    Col1 = value[counter + 2].Trim(),
+                    Col2 = value[counter + 3].Trim(),
+                    Col3 = value[counter + 4].Trim(),
+
+                    CurrentValue = "",
+
+                    IsActive = false
                 });
 
             counter += 5;
         }
 
-        for (int i = 0;
-             i < count2 && counter + 2 < value.Length;
-             i++)
+        Notify();
+    }
+
+
+
+    private void RefreshParameters(string[] value)
+    {
+        if (State.Parameters.Count == 0)
+            return;
+
+        if (value.Length < 4)
+            return;
+
+        int count = 0;
+
+        if (value[2].Trim() == "Count")
         {
-            string text =
-                !string.IsNullOrWhiteSpace(value[counter + 2])
-                    ? value[counter + 2]
-                    : value[counter + 1];
+            count = ParseInt(value[3]);
+        }
 
-            State.Items.Add(
-                new MenuItem
-                {
-                    Index = i,
-                    Text = text,
-                    Selected = i == selectedIndex
-                });
+        foreach (var parameter in State.Parameters)
+        {
+            parameter.IsActive = false;
+            parameter.CurrentValue = "^^^^";
+        }
 
-            counter += 3;
+        int counter = 4;
+
+        for (int i = 0; i < count; i++)
+        {
+            if (counter + 1 >= value.Length)
+                break;
+
+            int rowIndex = ParseInt(value[counter]);
+
+            string currentValue =
+                value[counter + 1].Trim();
+
+            if (rowIndex >= 0 && rowIndex < State.Parameters.Count)
+            {
+                State.Parameters[rowIndex].CurrentValue = currentValue;
+                State.Parameters[rowIndex].Value = currentValue;
+                State.Parameters[rowIndex].IsActive = true;
+            }
+
+            counter += 2;
         }
 
         Notify();
