@@ -48,11 +48,11 @@
 
 <hr />
 
-<h3>Received Data</h3>
+@* <h3>Received Data</h3>
 
 <div style=" background:#111; color:#00ff00; padding:10px; min-height:80px; white-space:pre-wrap; font-family:monospace;"> @ReceivedData </div>
 
-<hr />
+<hr />  *@
 
 <h3>Diagnostic Message</h3>
 
@@ -221,30 +221,6 @@
 </div>
 }
 
-@* @if (MenuService.State.Screen == MenuScreen.Memo)
-{
-<div class="diagnostic-panel">
-
-    <h3>@MenuService.State.Header</h3>
-
-    @foreach (var record in MenuService.State.MemoRecords)
-    {
-        <div style="
-            border-bottom:1px solid #ddd;
-            padding:10px 0;">
-
-            <strong>@record.Title</strong>
-
-            @foreach (var line in record.Lines)
-            {
-                <div>@line</div>
-            }
-
-        </div>
-    }
-
-</div>
-} *@
 
 @if (MenuService.State.Screen == MenuScreen.Memo)
 {

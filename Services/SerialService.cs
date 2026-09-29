@@ -53,9 +53,21 @@ public class SerialService : IDisposable
                 0,
                 buffer.Length);
 
+            //string hex = BitConverter
+            //    .ToString(buffer)
+            //    .Replace("-", " ");
+
+            //DataReceived?.Invoke(hex);
+
             string hex = BitConverter
-                .ToString(buffer)
-                .Replace("-", " ");
+                    .ToString(buffer)
+                    .Replace("-", " ");
+
+            Console.WriteLine("========== SERIAL RECEIVE ==========");
+            Console.WriteLine($"HEX: {hex}");
+            Console.WriteLine(
+                $"ASCII: {System.Text.Encoding.UTF8.GetString(buffer)}");
+            Console.WriteLine("====================================");
 
             DataReceived?.Invoke(hex);
         }
@@ -75,10 +87,10 @@ public class SerialService : IDisposable
             .ToString(data)
             .Replace("-", " ");
 
-        Console.WriteLine("========== SERIAL SEND ==========");
-        Console.WriteLine($"HEX: {hex}");
-        Console.WriteLine($"ASCII: {System.Text.Encoding.UTF8.GetString(data)}");
-        Console.WriteLine("=================================");
+        //Console.WriteLine("========== SERIAL SEND ==========");
+        //Console.WriteLine($"HEX: {hex}");
+        //Console.WriteLine($"ASCII: {System.Text.Encoding.UTF8.GetString(data)}");
+        //Console.WriteLine("=================================");
 
         _serialPort!.Write(data, 0, data.Length);
     }
