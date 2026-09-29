@@ -536,42 +536,82 @@ public class DiagnosticMenuService
         Notify();
     }
 
-    public void SelectMenuItem(int index)
+    //public void SelectMenuItem(int index)
+    //{
+    //    _diagnosticService.Send(
+    //        index.ToString());
+    //}
+
+    //public void SelectSensorItem(int index)
+    //{
+    //    _diagnosticService.Send(
+    //        index.ToString());
+    //}
+
+    //public void SetCheckBox(
+    //    int index,
+    //    bool checkedValue)
+    //{
+    //    string command =
+    //        $"{index},{(checkedValue ? 1 : 0)}";
+
+    //    _diagnosticService.Send(command);
+    //}
+
+    //public void ContinueMessage()
+    //{
+    //    _diagnosticService.Send("0");
+    //}
+
+    //public void Back()
+    //{
+    //    _diagnosticService.Send("-1");
+    //}
+
+    //public void Back2()
+    //{
+    //    _diagnosticService.Send("-2");
+    //}
+
+
+
+    public async Task SelectMenuItem(int index)
     {
-        _diagnosticService.Send(
+        await _diagnosticService.Send(
             index.ToString());
     }
 
-    public void SelectSensorItem(int index)
+    public async Task SelectSensorItem(int index)
     {
-        _diagnosticService.Send(
+        await _diagnosticService.Send(
             index.ToString());
     }
 
-    public void SetCheckBox(
+    public async Task SetCheckBox(
         int index,
         bool checkedValue)
     {
         string command =
             $"{index},{(checkedValue ? 1 : 0)}";
 
-        _diagnosticService.Send(command);
+        await _diagnosticService.Send(command);
     }
 
-    public void ContinueMessage()
+    public async Task ContinueMessage()
     {
-        _diagnosticService.Send("0");
+        await _diagnosticService.Send("0");
     }
 
-    public void Back()
+    public async Task Back()
     {
-        _diagnosticService.Send("-1");
+        await _diagnosticService.Send("-1");
     }
 
-    public void Back2()
+    public async Task Back2()
     {
-        _diagnosticService.Send("-2");
+        await _diagnosticService.Send("-2");
     }
+
 
     private static string GetHeader(
         string[] value)

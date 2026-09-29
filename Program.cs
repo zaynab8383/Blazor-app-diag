@@ -12,6 +12,7 @@ builder.Services.AddSingleton<UdpServer>();
 builder.Services.AddSingleton<DiagnosticService>();
 builder.Services.AddSingleton<SerialService>();
 builder.Services.AddSingleton<DiagnosticMenuService>();
+builder.Services.AddSingleton<DiagnosticTcpServerService>();
 
 var app = builder.Build();
 

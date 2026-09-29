@@ -5,7 +5,7 @@ namespace MyBlazorApp1.Services;
 
 public class DiagnosticService : IDisposable
 {
-    private readonly SerialService _serialService;
+    private readonly DiagnosticTcpServerService _tcpServer;
 
     private readonly List<byte> _receiveBuffer = new();
 
@@ -22,25 +22,27 @@ public class DiagnosticService : IDisposable
 
     public bool IsRunning { get; private set; }
 
-    public DiagnosticService(SerialService serialService)
+    public DiagnosticService(
+        DiagnosticTcpServerService tcpServer)
     {
-        _serialService = serialService;
+        _tcpServer = tcpServer;
 
-        _serialService.DataReceived += OnSerialDataReceived;
+        _tcpServer.DataReceived += OnTcpDataReceived;
     }
 
-    private void OnSerialDataReceived(string hexData)
+    private void OnTcpDataReceived(byte[] data)
     {
         if (!IsRunning)
             return;
+
+        string hexData = Convert.ToHexString(data)
+            .Replace("-", " ");
 
         RawDataReceived?.Invoke(hexData);
 
         try
         {
-            byte[] bytes = ConvertHexToBytes(hexData);
-
-            _receiveBuffer.AddRange(bytes);
+            _receiveBuffer.AddRange(data);
 
             ProcessReceiveBuffer();
         }
@@ -100,26 +102,15 @@ public class DiagnosticService : IDisposable
         return -1;
     }
 
-    //private void ProcessMessage(string message)
-    //{
-    //    string[] parts =
-    //        ParseMessage(message);
-
-    //    if (parts.Length == 0)
-    //        return;
-
-    //    if (parts[0] == "Type")
-    //    {
-    //        DiagnosticDataReceived?.Invoke(parts);
-    //    }
-    //}
-
-
     private void ProcessMessage(string message)
     {
-        Console.WriteLine("========== DIAGNOSTIC MESSAGE ==========");
+        Console.WriteLine(
+            "========== DIAGNOSTIC MESSAGE ==========");
+
         Console.WriteLine(message);
-        Console.WriteLine("=========================================");
+
+        Console.WriteLine(
+            "=========================================");
 
         string[] parts = ParseMessage(message);
 
@@ -131,7 +122,6 @@ public class DiagnosticService : IDisposable
             DiagnosticDataReceived?.Invoke(parts);
         }
     }
-
 
     private string[] ParseMessage(string message)
     {
@@ -154,28 +144,11 @@ public class DiagnosticService : IDisposable
         return result.ToArray();
     }
 
-    private static byte[] ConvertHexToBytes(string hex)
-    {
-        string[] parts =
-            hex.Split(
-                ' ',
-                StringSplitOptions.RemoveEmptyEntries);
-
-        byte[] result = new byte[parts.Length];
-
-        for (int i = 0; i < parts.Length; i++)
-        {
-            result[i] = Convert.ToByte(
-                parts[i],
-                16);
-        }
-
-        return result;
-    }
-
     public void Start()
     {
         IsRunning = true;
+
+        _receiveBuffer.Clear();
     }
 
     public void Stop()
@@ -185,22 +158,24 @@ public class DiagnosticService : IDisposable
         _receiveBuffer.Clear();
     }
 
-    public void Send(string command)
+    public async Task Send(string command)
     {
-        if (!_serialService.IsConnected)
+        if (!_tcpServer.IsClientConnected)
+        {
             throw new InvalidOperationException(
-                "Serial port is not connected.");
+                "TCP client is not connected.");
+        }
 
         byte[] data =
             Encoding.UTF8.GetBytes(
                 command + "\n");
 
-        _serialService.Send(data);
+        await _tcpServer.SendAsync(data);
     }
 
     public void Dispose()
     {
-        _serialService.DataReceived -= OnSerialDataReceived;
+        _tcpServer.DataReceived -= OnTcpDataReceived;
 
         _receiveBuffer.Clear();
     }
