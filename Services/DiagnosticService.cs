@@ -100,10 +100,28 @@ public class DiagnosticService : IDisposable
         return -1;
     }
 
+    //private void ProcessMessage(string message)
+    //{
+    //    string[] parts =
+    //        ParseMessage(message);
+
+    //    if (parts.Length == 0)
+    //        return;
+
+    //    if (parts[0] == "Type")
+    //    {
+    //        DiagnosticDataReceived?.Invoke(parts);
+    //    }
+    //}
+
+
     private void ProcessMessage(string message)
     {
-        string[] parts =
-            ParseMessage(message);
+        Console.WriteLine("========== DIAGNOSTIC MESSAGE ==========");
+        Console.WriteLine(message);
+        Console.WriteLine("=========================================");
+
+        string[] parts = ParseMessage(message);
 
         if (parts.Length == 0)
             return;
@@ -113,6 +131,7 @@ public class DiagnosticService : IDisposable
             DiagnosticDataReceived?.Invoke(parts);
         }
     }
+
 
     private string[] ParseMessage(string message)
     {
