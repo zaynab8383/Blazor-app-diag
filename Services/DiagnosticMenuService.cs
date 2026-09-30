@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MyBlazorApp1.Services;
 
@@ -14,6 +15,7 @@ public enum MenuScreen
     SoftwareList
 }
 
+
 public class MenuItem
 {
     public int Index { get; set; }
@@ -25,6 +27,7 @@ public class MenuItem
     public bool Selected { get; set; }
 }
 
+
 public class MemoRecord
 {
     public string Title { get; set; } = "";
@@ -32,41 +35,28 @@ public class MemoRecord
     public List<string> Lines { get; set; } = new();
 }
 
+
 public class DiagnosticParameter
 {
     public int Index { get; set; }
 
-    public string Col0 { get; set; } = "";
-    public string Col1 { get; set; } = "";
-    public string Col2 { get; set; } = "";
-    public string Col3 { get; set; } = "";
+    public string Name { get; set; } = "";
 
-    // برای سازگاری با کد قبلی
     public string Value { get; set; } = "";
 
-    // مقدار لحظه‌ای که از Type 20.2 می‌آید
     public string CurrentValue { get; set; } = "";
+
+    public string Col0 { get; set; } = "";
+
+    public string Col1 { get; set; } = "";
+
+    public string Col2 { get; set; } = "";
+
+    public string Col3 { get; set; } = "";
 
     public bool IsActive { get; set; }
 }
 
-public class MenuState
-{
-    public MenuScreen Screen { get; set; } =
-        MenuScreen.None;
-
-    public string Header { get; set; } = "";
-
-    public string Message { get; set; } = "";
-
-    public KeyboardState Keyboard { get; set; } = new();
-
-    public List<MenuItem> Items { get; set; } = new();
-
-    public List<MemoRecord> MemoRecords { get; set; } = new();
-
-    public List<DiagnosticParameter> Parameters { get; set; } = new();
-}
 
 public class KeyboardState
 {
@@ -82,28 +72,55 @@ public class KeyboardState
         MenuScreen.None;
 }
 
+
+public class MenuState
+{
+    public MenuScreen Screen { get; set; } =
+        MenuScreen.None;
+
+    public string Header { get; set; } = "";
+
+    public string Message { get; set; } = "";
+
+    public List<MenuItem> Items { get; set; } = new();
+
+    public List<MemoRecord> MemoRecords { get; set; } = new();
+
+    public List<DiagnosticParameter> Parameters { get; set; } = new();
+
+    public List<DiagnosticParameter> Sensors { get; set; } = new();
+
+    public List<MenuItem> SensorActions { get; set; } = new();
+
+    public int SelectedIndex { get; set; } = -1;
+
+    public KeyboardState Keyboard { get; set; } = new();
+}
+
+
 public class DiagnosticMenuService
 {
     private readonly DiagnosticService _diagnosticService;
 
-    public MenuState State { get; private set; } =
-        new();
+    public MenuState State { get; } = new();
 
     public event Action? StateChanged;
+
 
     public DiagnosticMenuService(
         DiagnosticService diagnosticService)
     {
-        _diagnosticService = diagnosticService;
+        _diagnosticService =
+            diagnosticService;
 
         _diagnosticService.DiagnosticDataReceived +=
             OnDiagnosticDataReceived;
     }
 
 
-    // =========================================================
-    // دریافت اطلاعات Diagnostic
-    // =========================================================
+    /* ========================================================= */
+    /* RECEIVE DIAGNOSTIC DATA */
+    /* ========================================================= */
 
     private void OnDiagnosticDataReceived(
         string[] value)
@@ -116,103 +133,171 @@ public class DiagnosticMenuService
                 return;
             }
 
-            State.Keyboard.Visible = false;
+            string type =
+                value[1]?.Trim() ?? "";
 
-            string type = value[1];
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== MENU SERVICE ==========");
+
+            Console.WriteLine(
+                $"TYPE = [{type}]");
+
+            Console.WriteLine(
+                $"FIELDS = {value.Length}");
+
+            Console.WriteLine(
+                "===================================");
+
 
             switch (type)
             {
-                case "4":
-                    ShowBoxPage(value);
+                /*
+                 * Memo / information messages
+                 */
+                case "0":
+                case "18":
+
+                    ShowMemo(value);
+
                     break;
 
-                case "14":
-                    ShowMessage(value);
-                    break;
 
-                case "5":
-                    ShowSelectPage(value);
-                    break;
-
-                case "20":
-                    ShowParameters(value);
-                    break;
-
-                case "20.2":
-                    RefreshParameters(value);
-                    break;
-
-                case "21":
-                    ShowSensor(value);
-                    break;
-
-                case "10":
-                    ShowKeyboard(value);
-                    break;
-
+                /*
+                 * Software list
+                 */
                 case "1":
+
                     ShowSoftwareList(value);
+
                     break;
+
+
+                /*
+                 * Normal box/menu page
+                 */
+                case "4":
+
+                    ShowBoxPage(value);
+
+                    break;
+
+
+                /*
+                 * Select / checkbox page
+                 */
+                case "5":
+
+                    ShowSelectPage(value);
+
+                    break;
+
+
+                /*
+                 * Keyboard
+                 */
+                case "10":
+
+                    ShowKeyboard(value);
+
+                    break;
+
+
+                /*
+                 * Message
+                 */
+                case "14":
+
+                    ShowMessage(value);
+
+                    break;
+
+
+                /*
+                 * Parameters
+                 */
+                case "20":
+
+                    ShowParameters(value);
+
+                    break;
+
+
+                /*
+                 * Parameter refresh
+                 */
+                case "20.2":
+
+                    RefreshParameters(value);
+
+                    break;
+
+
+                /*
+                 * Sensor
+                 */
+                case "21":
+
+                    ShowSensor(value);
+
+                    break;
+
+
+                /*
+                 * Sensor header
+                 */
+                case "21.1":
+
+                    SetSensorHeader(value);
+
+                    break;
+
+
+                /*
+                 * Sensor refresh
+                 */
+                case "21.3":
+
+                    RefreshSensor(value);
+
+                    break;
+
+
+                /*
+                 * Another box-page style message
+                 */
+                case "6":
+
+                    ShowBoxPage(value);
+
+                    break;
+
 
                 default:
+
+                    Console.WriteLine(
+                        $"Unhandled diagnostic type: [{type}]");
+
                     break;
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine();
             Console.WriteLine(
-                $"DiagnosticMenuService error: {ex.Message}");
+                "DIAGNOSTIC MENU SERVICE ERROR");
+
+            Console.WriteLine(ex);
+
+            Console.WriteLine(
+                "================================");
         }
     }
 
 
-    // =========================================================
-    // Software List
-    // =========================================================
-
-    private void ShowSoftwareList(
-        string[] value)
-    {
-        State.Screen =
-            MenuScreen.SoftwareList;
-
-        State.Header =
-            "لیست نرم افزارها";
-
-        State.Items.Clear();
-
-        for (int i = 0;
-             i < value.Length;
-             i++)
-        {
-            if (!value[i].StartsWith("R"))
-                continue;
-
-            if (i + 1 >= value.Length)
-                continue;
-
-            string text =
-                value[i + 1].Trim();
-
-            if (string.IsNullOrWhiteSpace(text))
-                continue;
-
-            State.Items.Add(
-                new MenuItem
-                {
-                    Index = State.Items.Count,
-                    Text = text,
-                    Selected = false
-                });
-        }
-
-        Notify();
-    }
-
-
-    // =========================================================
-    // Box Page - Type 4
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 4 / TYPE 6 */
+    /* ========================================================= */
 
     private void ShowBoxPage(
         string[] value)
@@ -225,11 +310,25 @@ public class DiagnosticMenuService
 
         State.Items.Clear();
 
+        State.Parameters.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
+
         if (value.Length < 9)
         {
             Notify();
             return;
         }
+
 
         int count =
             ParseInt(value[6]);
@@ -237,19 +336,51 @@ public class DiagnosticMenuService
         int selectedIndex =
             ParseInt(value[8]);
 
+        State.SelectedIndex =
+            selectedIndex;
+
+
         int counter = 9;
 
-        for (
-            int i = 0;
-            i < count &&
-            counter + 2 < value.Length;
-            i++)
+
+        for (int i = 0;
+             i < count;
+             i++)
         {
-            string text =
-                !string.IsNullOrWhiteSpace(
-                    value[counter + 2])
-                    ? value[counter + 2]
-                    : value[counter + 1];
+            if (counter >= value.Length)
+                break;
+
+
+            string text = "";
+
+
+            /*
+             * Protocol structure:
+             *
+             * R0
+             * empty
+             * text
+             */
+
+            if (counter + 2 < value.Length)
+            {
+                text =
+                    value[counter + 2]?.Trim() ?? "";
+            }
+
+
+            /*
+             * Fallback in case the
+             * text is stored directly.
+             */
+
+            if (string.IsNullOrWhiteSpace(text) &&
+                counter + 1 < value.Length)
+            {
+                text =
+                    value[counter + 1]?.Trim() ?? "";
+            }
+
 
             State.Items.Add(
                 new MenuItem
@@ -260,71 +391,35 @@ public class DiagnosticMenuService
                         i == selectedIndex
                 });
 
+
             counter += 3;
         }
 
-        Notify();
-    }
 
+        Console.WriteLine();
+        Console.WriteLine(
+            "MENU UI UPDATE");
 
-    // =========================================================
-    // Message - Type 14
-    // =========================================================
+        Console.WriteLine(
+            $"Screen = {State.Screen}");
 
-    private void ShowMessage(
-        string[] value)
-    {
-        State.Screen =
-            MenuScreen.Message;
+        Console.WriteLine(
+            $"Header = [{State.Header}]");
 
-        State.Header =
-            GetHeader(value);
+        Console.WriteLine(
+            $"SelectedIndex = {State.SelectedIndex}");
 
-        State.Message =
-            value.Length > 4
-                ? value[4]
-                : "";
+        Console.WriteLine(
+            $"Items = {State.Items.Count}");
 
-        Notify();
-    }
-
-
-    // =========================================================
-    // Keyboard - Type 10
-    // =========================================================
-
-    private void ShowKeyboard(
-        string[] value)
-    {
-        State.Keyboard.PreviousScreen =
-            State.Screen;
-
-        State.Screen =
-            MenuScreen.None;
-
-        State.Keyboard.Visible =
-            true;
-
-        State.Keyboard.Header =
-            value.Length > 3
-                ? value[3]
-                : "";
-
-        State.Keyboard.Value =
-            value.Length > 4
-                ? value[4]
-                : "";
-
-        State.Keyboard.Mode =
-            "Letters";
 
         Notify();
     }
 
 
-    // =========================================================
-    // Select Page - Type 5
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 5 */
+    /* ========================================================= */
 
     private void ShowSelectPage(
         string[] value)
@@ -337,11 +432,25 @@ public class DiagnosticMenuService
 
         State.Items.Clear();
 
+        State.Parameters.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
+
         if (value.Length < 9)
         {
             Notify();
             return;
         }
+
 
         int count =
             ParseInt(value[6]);
@@ -349,19 +458,38 @@ public class DiagnosticMenuService
         int selectedIndex =
             ParseInt(value[8]);
 
+        State.SelectedIndex =
+            selectedIndex;
+
+
         int counter = 9;
 
-        for (
-            int i = 0;
-            i < count &&
-            counter + 2 < value.Length;
-            i++)
+
+        for (int i = 0;
+             i < count;
+             i++)
         {
-            string text =
-                !string.IsNullOrWhiteSpace(
-                    value[counter + 2])
-                    ? value[counter + 2]
-                    : value[counter + 1];
+            if (counter >= value.Length)
+                break;
+
+
+            string text = "";
+
+
+            if (counter + 2 < value.Length)
+            {
+                text =
+                    value[counter + 2]?.Trim() ?? "";
+            }
+
+
+            if (string.IsNullOrWhiteSpace(text) &&
+                counter + 1 < value.Length)
+            {
+                text =
+                    value[counter + 1]?.Trim() ?? "";
+            }
+
 
             State.Items.Add(
                 new MenuItem
@@ -369,19 +497,320 @@ public class DiagnosticMenuService
                     Index = i,
                     Text = text,
                     Checked =
+                        i == selectedIndex,
+                    Selected =
                         i == selectedIndex
                 });
 
+
             counter += 3;
         }
+
 
         Notify();
     }
 
 
-    // =========================================================
-    // Parameters - Type 20
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 1 */
+    /* SOFTWARE LIST */
+    /* ========================================================= */
+
+    private void ShowSoftwareList(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.SoftwareList;
+
+        State.Header =
+            GetHeader(value);
+
+        State.Items.Clear();
+
+        State.Parameters.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
+
+        /*
+         * Software-list messages can vary slightly
+         * in their field structure.
+         *
+         * We keep all meaningful R-fields.
+         */
+
+        int index = 0;
+
+
+        for (int i = 0;
+             i < value.Length;
+             i++)
+        {
+            string field =
+                value[i]?.Trim() ?? "";
+
+
+            if (field.StartsWith("R",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                string text = "";
+
+
+                if (i + 2 < value.Length)
+                {
+                    text =
+                        value[i + 2]?.Trim() ?? "";
+                }
+
+
+                if (string.IsNullOrWhiteSpace(text) &&
+                    i + 1 < value.Length)
+                {
+                    text =
+                        value[i + 1]?.Trim() ?? "";
+                }
+
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    State.Items.Add(
+                        new MenuItem
+                        {
+                            Index = index++,
+                            Text = text
+                        });
+                }
+            }
+        }
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* TYPE 0 / TYPE 18 */
+    /* MEMO */
+    /* ========================================================= */
+
+    private void ShowMemo(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.Memo;
+
+        State.Header =
+            GetHeader(value);
+
+        State.MemoRecords.Clear();
+
+        State.Items.Clear();
+
+        State.Parameters.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
+
+        int count = 0;
+
+
+        /*
+         * Common structure:
+         *
+         * Type
+         * 0
+         * Count
+         * N
+         * ...
+         */
+
+        if (value.Length > 3 &&
+            value[2] == "Count")
+        {
+            count =
+                ParseInt(value[3]);
+        }
+
+
+        int counter = 4;
+
+
+        for (int i = 0;
+             i < count && counter < value.Length;
+             i++)
+        {
+            string title = "";
+
+
+            if (counter < value.Length)
+            {
+                title =
+                    value[counter]?.Trim() ?? "";
+            }
+
+
+            counter++;
+
+
+            List<string> lines =
+                new();
+
+
+            while (counter < value.Length)
+            {
+                string current =
+                    value[counter]?.Trim() ?? "";
+
+
+                if (current.StartsWith("R",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+
+                if (!string.IsNullOrWhiteSpace(current))
+                {
+                    lines.Add(current);
+                }
+
+
+                counter++;
+            }
+
+
+            State.MemoRecords.Add(
+                new MemoRecord
+                {
+                    Title = title,
+                    Lines = lines
+                });
+        }
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* TYPE 10 */
+    /* KEYBOARD */
+    /* ========================================================= */
+
+    private void ShowKeyboard(
+        string[] value)
+    {
+        State.Keyboard.PreviousScreen =
+            State.Screen;
+
+
+        State.Screen =
+            MenuScreen.None;
+
+
+        State.Keyboard.Visible =
+            true;
+
+
+        State.Keyboard.Header =
+            value.Length > 3
+                ? value[3]?.Trim() ?? ""
+                : "";
+
+
+        State.Keyboard.Value =
+            value.Length > 4
+                ? value[4]?.Trim() ?? ""
+                : "";
+
+
+        State.Keyboard.Mode =
+            "Letters";
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* TYPE 14 */
+    /* MESSAGE */
+    /* ========================================================= */
+
+    private void ShowMessage(
+        string[] value)
+    {
+        State.Screen =
+            MenuScreen.Message;
+
+        State.Items.Clear();
+
+        State.Parameters.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Keyboard.Visible = false;
+
+
+        State.Header =
+            GetHeader(value);
+
+
+        /*
+         * Try to use the first useful
+         * field as message text.
+         */
+
+        State.Message = "";
+
+
+        for (int i = 3;
+             i < value.Length;
+             i++)
+        {
+            string text =
+                value[i]?.Trim() ?? "";
+
+
+            if (!string.IsNullOrWhiteSpace(text) &&
+                text != "Count" &&
+                text != "Selected_Index")
+            {
+                State.Message +=
+                    (State.Message.Length > 0
+                        ? Environment.NewLine
+                        : "")
+                    + text;
+            }
+        }
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* TYPE 20 */
+    /* PARAMETERS */
+    /* ========================================================= */
 
     private void ShowParameters(
         string[] value)
@@ -390,9 +819,22 @@ public class DiagnosticMenuService
             MenuScreen.Parameters;
 
         State.Header =
-            "پارامترها";
+            GetHeader(value);
 
         State.Parameters.Clear();
+
+        State.Items.Clear();
+
+        State.Sensors.Clear();
+
+        State.SensorActions.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
 
         if (value.Length < 4)
         {
@@ -400,127 +842,148 @@ public class DiagnosticMenuService
             return;
         }
 
-        int count = 0;
 
-        if (value[2].Trim() == "Count")
-        {
-            count =
-                ParseInt(value[3]);
-        }
+        int count =
+            ParseInt(value[3]);
+
 
         int counter = 4;
 
-        for (
-            int i = 0;
-            i < count;
-            i++)
+
+        for (int i = 0;
+             i < count;
+             i++)
         {
-            if (counter + 4 >= value.Length)
+            if (counter >= value.Length)
                 break;
+
+
+            string col0 =
+                counter + 1 < value.Length
+                    ? value[counter + 1]?.Trim() ?? ""
+                    : "";
+
+            string col1 =
+                counter + 2 < value.Length
+                    ? value[counter + 2]?.Trim() ?? ""
+                    : "";
+
+            string col2 =
+                counter + 3 < value.Length
+                    ? value[counter + 3]?.Trim() ?? ""
+                    : "";
+
+            string col3 =
+                counter + 4 < value.Length
+                    ? value[counter + 4]?.Trim() ?? ""
+                    : "";
+
 
             State.Parameters.Add(
                 new DiagnosticParameter
                 {
                     Index = i,
 
-                    Col0 =
-                        value[counter + 1].Trim(),
+                    Name = col0,
 
-                    Col1 =
-                        value[counter + 2].Trim(),
+                    Col0 = col0,
 
-                    Col2 =
-                        value[counter + 3].Trim(),
+                    Col1 = col1,
 
-                    Col3 =
-                        value[counter + 4].Trim(),
+                    Col2 = col2,
 
-                    CurrentValue = "",
+                    Col3 = col3,
 
-                    IsActive = false
+                    Value = "^^^^",
+
+                    CurrentValue = "^^^^",
+
+                    IsActive =
+                        !string.IsNullOrWhiteSpace(col0)
                 });
+
 
             counter += 5;
         }
+
 
         Notify();
     }
 
 
-    // =========================================================
-    // Parameters Refresh - Type 20.2
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 20.2 */
+    /* PARAMETER REFRESH */
+    /* ========================================================= */
 
     private void RefreshParameters(
         string[] value)
     {
         if (State.Parameters.Count == 0)
-            return;
-
-        if (value.Length < 4)
-            return;
-
-        int count = 0;
-
-        if (value[2].Trim() == "Count")
         {
-            count =
-                ParseInt(value[3]);
+            Notify();
+            return;
         }
 
-        foreach (
-            var parameter in
-            State.Parameters)
+
+        /*
+         * Keep the current parameter structure
+         * and update available values.
+         */
+
+        for (int i = 0;
+             i < value.Length;
+             i++)
         {
-            parameter.IsActive = false;
+            string field =
+                value[i]?.Trim() ?? "";
 
-            parameter.CurrentValue =
-                "^^^^";
-        }
 
-        int counter = 4;
-
-        for (
-            int i = 0;
-            i < count;
-            i++)
-        {
-            if (counter + 1 >= value.Length)
-                break;
-
-            int rowIndex =
-                ParseInt(value[counter]);
-
-            string currentValue =
-                value[counter + 1].Trim();
-
-            if (
-                rowIndex >= 0 &&
-                rowIndex < State.Parameters.Count)
+            if (field.StartsWith("R",
+                StringComparison.OrdinalIgnoreCase))
             {
-                State.Parameters[rowIndex]
-                    .CurrentValue =
-                    currentValue;
+                int index =
+                    ParseInt(
+                        field.Length > 1
+                            ? field[1..]
+                            : "-1");
 
-                State.Parameters[rowIndex]
-                    .Value =
-                    currentValue;
 
-                State.Parameters[rowIndex]
-                    .IsActive =
-                    true;
+                if (index < 0 ||
+                    index >= State.Parameters.Count)
+                {
+                    continue;
+                }
+
+
+                if (i + 2 < value.Length)
+                {
+                    string newValue =
+                        value[i + 2]?.Trim() ?? "";
+
+
+                    State.Parameters[index].CurrentValue =
+                        newValue;
+
+                    State.Parameters[index].Value =
+                        newValue;
+
+                    State.Parameters[index].IsActive =
+                        !string.IsNullOrWhiteSpace(
+                            newValue);
+                }
             }
-
-            counter += 2;
         }
+
 
         Notify();
     }
 
 
-    // =========================================================
-    // Sensor - Type 21
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 21 */
+    /* SENSOR */
+    /* ========================================================= */
 
     private void ShowSensor(
         string[] value)
@@ -529,37 +992,318 @@ public class DiagnosticMenuService
             MenuScreen.Sensor;
 
         State.Header =
-            value.Length > 3
-                ? value[3]
-                : "";
+            GetHeader(value);
 
         State.Parameters.Clear();
 
         State.Items.Clear();
 
+        State.SensorActions.Clear();
+
+        State.Sensors.Clear();
+
+        State.MemoRecords.Clear();
+
+        State.Message = "";
+
+        State.Keyboard.Visible = false;
+
+
+        if (value.Length < 10)
+        {
+            Notify();
+            return;
+        }
+
+
+        int parameterCount =
+            ParseInt(value[5]);
+
+        int actionCount =
+            ParseInt(value[7]);
+
+        int selectedIndex =
+            ParseInt(value[9]);
+
+
+        State.SelectedIndex =
+            selectedIndex;
+
+
+        int counter = 10;
+
+
+        /*
+         * Sensor parameters
+         *
+         * Each parameter:
+         *
+         * Rn
+         * empty
+         * Col0
+         * Col1
+         * Col2
+         */
+
+        for (int i = 0;
+             i < parameterCount;
+             i++)
+        {
+            if (counter >= value.Length)
+                break;
+
+
+            string col0 =
+                counter + 1 < value.Length
+                    ? value[counter + 1]?.Trim() ?? ""
+                    : "";
+
+            string col1 =
+                counter + 2 < value.Length
+                    ? value[counter + 2]?.Trim() ?? ""
+                    : "";
+
+            string col2 =
+                counter + 3 < value.Length
+                    ? value[counter + 3]?.Trim() ?? ""
+                    : "";
+
+            string col3 =
+                counter + 4 < value.Length
+                    ? value[counter + 4]?.Trim() ?? ""
+                    : "";
+
+
+            State.Parameters.Add(
+                new DiagnosticParameter
+                {
+                    Index = i,
+
+                    Name = col0,
+
+                    Col0 = col0,
+
+                    Col1 = col1,
+
+                    Col2 = col2,
+
+                    Col3 = col3,
+
+                    CurrentValue = col3,
+
+                    Value = col3,
+
+                    IsActive =
+                        !string.IsNullOrWhiteSpace(col0)
+                });
+
+
+            counter += 5;
+        }
+
+
+        /*
+         * Sensor action buttons
+         *
+         * Each action:
+         *
+         * Rn
+         * empty
+         * text
+         */
+
+        for (int i = 0;
+             i < actionCount;
+             i++)
+        {
+            if (counter >= value.Length)
+                break;
+
+
+            string text = "";
+
+
+            if (counter + 2 < value.Length)
+            {
+                text =
+                    value[counter + 2]?.Trim() ?? "";
+            }
+
+
+            if (string.IsNullOrWhiteSpace(text) &&
+                counter + 1 < value.Length)
+            {
+                text =
+                    value[counter + 1]?.Trim() ?? "";
+            }
+
+
+            State.Items.Add(
+                new MenuItem
+                {
+                    Index = i,
+                    Text = text,
+                    Selected =
+                        i == selectedIndex
+                });
+
+
+            State.SensorActions.Add(
+                new MenuItem
+                {
+                    Index = i,
+                    Text = text,
+                    Selected =
+                        i == selectedIndex
+                });
+
+
+            counter += 3;
+        }
+
+
+        State.Sensors.AddRange(
+            State.Parameters);
+
+
         Notify();
     }
 
 
-    // =========================================================
-    // COMMANDS
-    // =========================================================
+    /* ========================================================= */
+    /* TYPE 21.1 */
+    /* SENSOR HEADER */
+    /* ========================================================= */
+
+    private void SetSensorHeader(
+        string[] value)
+    {
+        if (value.Length > 3 &&
+            value[2] == "TEXT")
+        {
+            State.Header =
+                value[3]?.Trim() ?? "";
+        }
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* TYPE 21.3 */
+    /* SENSOR REFRESH */
+    /* ========================================================= */
+
+    private void RefreshSensor(
+        string[] value)
+    {
+        if (State.Parameters.Count == 0)
+        {
+            Notify();
+            return;
+        }
+
+
+        for (int i = 0;
+             i < value.Length;
+             i++)
+        {
+            string field =
+                value[i]?.Trim() ?? "";
+
+
+            if (!field.StartsWith("R",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+
+            int index =
+                ParseInt(
+                    field.Length > 1
+                        ? field[1..]
+                        : "-1");
+
+
+            if (index < 0 ||
+                index >= State.Parameters.Count)
+            {
+                continue;
+            }
+
+
+            string newValue = "";
+
+
+            if (i + 2 < value.Length)
+            {
+                newValue =
+                    value[i + 2]?.Trim() ?? "";
+            }
+
+
+            State.Parameters[index].CurrentValue =
+                newValue;
+
+            State.Parameters[index].Value =
+                newValue;
+
+            State.Parameters[index].IsActive =
+                !string.IsNullOrWhiteSpace(newValue);
+        }
+
+
+        State.Sensors.Clear();
+
+        State.Sensors.AddRange(
+            State.Parameters);
+
+
+        Notify();
+    }
+
+
+    /* ========================================================= */
+    /* SEND MENU COMMAND */
+    /* ========================================================= */
 
     public async Task SelectMenuItem(
         int index)
     {
+        string command =
+            index.ToString();
+
+        Console.WriteLine(
+            $"MENU -> TCP [{command}]");
+
         await _diagnosticService.SendAsync(
-            index.ToString());
+            command);
     }
 
+
+    /* ========================================================= */
+    /* SEND SENSOR COMMAND */
+    /* ========================================================= */
 
     public async Task SelectSensorItem(
         int index)
     {
+        string command =
+            index.ToString();
+
+        Console.WriteLine(
+            $"SENSOR -> TCP [{command}]");
+
         await _diagnosticService.SendAsync(
-            index.ToString());
+            command);
     }
 
+
+    /* ========================================================= */
+    /* CHECKBOX */
+    /* ========================================================= */
 
     public async Task SetCheckBox(
         int index,
@@ -568,66 +1312,142 @@ public class DiagnosticMenuService
         string command =
             $"{index},{(checkedValue ? 1 : 0)}";
 
+        Console.WriteLine(
+            $"CHECKBOX -> TCP [{command}]");
+
         await _diagnosticService.SendAsync(
             command);
     }
 
 
+    /* ========================================================= */
+    /* MESSAGE CONTINUE */
+    /* ========================================================= */
+
     public async Task ContinueMessage()
     {
-        await _diagnosticService.SendAsync("0");
+        await _diagnosticService.SendAsync(
+            "0");
     }
 
 
+    /* ========================================================= */
+    /* BACK */
+    /* ========================================================= */
+
     public async Task Back()
     {
-        await _diagnosticService.SendAsync("-1");
+        await _diagnosticService.SendAsync(
+            "-1");
     }
 
 
     public async Task Back2()
     {
-        await _diagnosticService.SendAsync("-2");
+        await _diagnosticService.SendAsync(
+            "-2");
     }
 
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    /* ========================================================= */
+    /* HEADER */
+    /* ========================================================= */
 
-    private static string GetHeader(
+    private string GetHeader(
         string[] value)
     {
-        if (
-            value.Length > 4 &&
-            !string.IsNullOrWhiteSpace(
-                value[3]))
+        if (value == null ||
+            value.Length < 4)
         {
-            return value[3];
+            return "";
         }
 
-        if (value.Length > 4)
+
+        /*
+         * Normal protocol:
+         *
+         * [0] Type
+         * [1] 4
+         * [2] Header
+         * [3] Main Menu
+         */
+
+        if (value[2] == "Header")
         {
-            return value[4];
+            return value[3]?.Trim() ?? "";
         }
+
+
+        /*
+         * Fallback:
+         * first useful field after Type.
+         */
+
+        for (int i = 2;
+             i < Math.Min(value.Length, 6);
+             i++)
+        {
+            string text =
+                value[i]?.Trim() ?? "";
+
+
+            if (text == "Header")
+                continue;
+
+            if (text == "Count")
+                continue;
+
+            if (text == "Selected_Index")
+                continue;
+
+
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                return text;
+            }
+        }
+
 
         return "";
     }
 
 
-    private static int ParseInt(
-        string value)
+    /* ========================================================= */
+    /* INTEGER PARSER */
+    /* ========================================================= */
+
+    private int ParseInt(
+        string? value)
     {
-        return int.TryParse(
-            value,
-            out int result)
-                ? result
-                : 0;
+        if (string.IsNullOrWhiteSpace(value))
+            return 0;
+
+
+        if (int.TryParse(
+            value.Trim(),
+            out int result))
+        {
+            return result;
+        }
+
+
+        return 0;
     }
 
 
+    /* ========================================================= */
+    /* NOTIFY BLAZOR */
+    /* ========================================================= */
+
     private void Notify()
     {
+        Console.WriteLine(
+            $"MENU UI UPDATE -> " +
+            $"Screen={State.Screen}, " +
+            $"Header=[{State.Header}], " +
+            $"Items={State.Items.Count}, " +
+            $"Parameters={State.Parameters.Count}");
+
         StateChanged?.Invoke();
     }
 }

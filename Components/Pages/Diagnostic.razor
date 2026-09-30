@@ -1,9 +1,11 @@
-﻿@page "/diagnostic"
+﻿@page "/diagnostic-tcp"
 
-<h1>Diagnostic Tool</h1>
+@inject NavigationManager Navigation
 
-<p>Diagnostic application is running.</p>
-
-<button class="btn btn-primary">
-    Connect
-</button>
+@code
+{
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

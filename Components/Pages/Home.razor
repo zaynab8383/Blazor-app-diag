@@ -1,300 +1,458 @@
 ﻿@page "/"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using MyBlazorApp1.Services
-@using System.Text
 
 @implements IDisposable
 
 @inject DiagnosticService DiagnosticService
-@inject DiagnosticTcpServerService TcpServer
 @inject DiagnosticMenuService MenuService
+@inject DiagnosticTcpServerService TcpServer
 
-<h1>Diagnostic Bridge</h1>
 
-<hr />
+<div class="diagnostic-container">
 
-<h3>TCP Connection</h3>
+    <!-- ========================================================= -->
+    <!-- TCP SERVER HEADER -->
+    <!-- ========================================================= -->
 
-<div style="margin-bottom: 10px;">
+    <div class="tcp-server-panel">
 
-    <p>
-        <strong>Diagnostic Service:</strong>
-
-        @if (DiagnosticService.IsRunning)
-        {
-            <span style="color:green;">Running</span>
-        }
-        else
-        {
-            <span style="color:red;">Stopped</span>
-        }
-    </p>
-
-</div>
-
-@* =========================================================
-   KEYBOARD
-   ========================================================= *@
-
-@if (MenuService.State.Keyboard.Visible)
-{
-    <div class="keyboard-panel">
-
-        <h2>
-            @MenuService.State.Keyboard.Header
-        </h2>
-
-        <input class="keyboard-input"
-               @bind="MenuService.State.Keyboard.Value"
-               readonly />
-
-        @if (MenuService.State.Keyboard.Mode == "Letters")
-        {
-            <div class="keyboard-grid">
-
-                @foreach (var key in LetterKeys)
-                {
-                    <button class="key-button"
-                            @onclick="() => KeyboardKey(key)">
-                        @key
-                    </button>
-                }
-
-            </div>
-        }
-
-        @if (MenuService.State.Keyboard.Mode == "Numbers")
-        {
-            <div class="keyboard-grid">
-
-                @foreach (var key in NumberKeys)
-                {
-                    <button class="key-button"
-                            @onclick="() => KeyboardKey(key)">
-                        @key
-                    </button>
-                }
-
-            </div>
-        }
-
-        @if (MenuService.State.Keyboard.Mode == "Characters")
-        {
-            <div class="keyboard-grid">
-
-                @foreach (var key in CharacterKeys)
-                {
-                    <button class="key-button"
-                            @onclick="() => KeyboardKey(key)">
-                        @key
-                    </button>
-                }
-
-            </div>
-        }
-
-        <div class="keyboard-actions">
-
-            <button class="keyboard-action"
-                    @onclick="KeyboardNumbers">
-                123
-            </button>
-
-            <button class="keyboard-action"
-                    @onclick="KeyboardCharacters">
-                کاراکترها
-            </button>
-
-            <button class="keyboard-action"
-                    @onclick="KeyboardDelete">
-                DEL
-            </button>
-
-            <button class="keyboard-action"
-                    @onclick="KeyboardCancel">
-                CANCEL
-            </button>
-
-            <button class="keyboard-action enter-button"
-                    @onclick="KeyboardEnter">
-                ENTER
-            </button>
-
+        <div class="tcp-server-title">
+            Diagnostic TCP Server
         </div>
 
-    </div>
-}
+        <div class="tcp-status-row">
 
+            <div class="status-item">
+                <span class="status-label">
+                    Server:
+                </span>
 
-@* =========================================================
-   BOX PAGE
-   ========================================================= *@
+                @if (TcpServer.IsRunning)
+                {
+                    <span class="status-connected">
+                        Running
+                    </span>
+                }
+                else
+                {
+                    <span class="status-disconnected">
+                        Stopped
+                    </span>
+                }
+            </div>
 
-@if (MenuService.State.Screen == MenuScreen.BoxPage)
-{
-    <div class="diagnostic-panel">
+            <div class="status-item">
+                <span class="status-label">
+                    Client:
+                </span>
 
-        <h3>@MenuService.State.Header</h3>
+                @if (TcpServer.IsClientConnected)
+                {
+                    <span class="status-connected">
+                        Connected
+                    </span>
+                }
+                else
+                {
+                    <span class="status-disconnected">
+                        Disconnected
+                    </span>
+                }
+            </div>
 
-        @foreach (var item in MenuService.State.Items)
-        {
-            <button class="diagnostic-button"
-                    @onclick="() => SelectMenuItem(item.Index)">
-
-                @item.Text
-
-            </button>
-        }
-
-    </div>
-}
-
-
-@* =========================================================
-   SOFTWARE LIST
-   ========================================================= *@
-
-@if (MenuService.State.Screen == MenuScreen.SoftwareList)
-{
-    <div class="software-page">
-
-        <div class="software-header">
-            @MenuService.State.Header
-        </div>
-
-        <div class="software-content">
-
-            @foreach (var item in MenuService.State.Items)
+            @if (TcpServer.IsClientConnected)
             {
-                <div class="software-row">
-                    @item.Text
+                <div class="status-item">
+
+                    <span class="status-label">
+                        Endpoint:
+                    </span>
+
+                    <span class="endpoint">
+                        @TcpServer.ClientEndPoint
+                    </span>
+
                 </div>
             }
 
         </div>
 
-    </div>
-}
+        <div class="tcp-buttons">
 
+            @if (!TcpServer.IsRunning)
+            {
+                <button type="button"
+                        class="tcp-button start-button"
+                        @onclick="StartTcpServer">
 
-@* =========================================================
-   MESSAGE
-   ========================================================= *@
+                    Start TCP Server
 
-@if (MenuService.State.Screen == MenuScreen.Message)
-{
-    <div class="diagnostic-panel">
+                </button>
+            }
+            else
+            {
+                <button type="button"
+                        class="tcp-button stop-button"
+                        @onclick="StopTcpServer">
 
-        <h3>@MenuService.State.Header</h3>
+                    Stop TCP Server
 
-        <div style="
-            padding:20px;
-            border:1px solid #ccc;
-            margin-bottom:15px;
-            white-space:pre-wrap;">
-
-            @MenuService.State.Message
+                </button>
+            }
 
         </div>
 
-        <button class="diagnostic-button"
-                @onclick="ContinueMessage">
-
-            ادامه
-
-        </button>
-
     </div>
-}
 
 
-@* =========================================================
-   MEMO
-   ========================================================= *@
+    <!-- ========================================================= -->
+    <!-- KEYBOARD -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Keyboard.Visible)
+    {
+        <div class="keyboard-panel">
 
-@if (MenuService.State.Screen == MenuScreen.Memo)
-{
-    <div class="memo-page">
+            <h2>
+                @MenuService.State.Keyboard.Header
+            </h2>
 
-        <h2>@MenuService.State.Header</h2>
+            <input class="keyboard-input"
+                   @bind="MenuService.State.Keyboard.Value"
+                   readonly />
 
-        @foreach (var record in MenuService.State.MemoRecords)
-        {
-            <div class="memo-record">
+            @if (MenuService.State.Keyboard.Mode == "Letters")
+            {
+                <div class="keyboard-grid">
 
-                <div class="memo-title">
-                    @record.Title
+                    @foreach (var key in LetterKeys)
+                    {
+                        <button type="button"
+                                class="key-button"
+                                @onclick="() => KeyboardKey(key)">
+
+                            @key
+
+                        </button>
+                    }
+
                 </div>
+            }
 
-                @foreach (var line in record.Lines)
+            @if (MenuService.State.Keyboard.Mode == "Numbers")
+            {
+                <div class="keyboard-grid">
+
+                    @foreach (var key in NumberKeys)
+                    {
+                        <button type="button"
+                                class="key-button"
+                                @onclick="() => KeyboardKey(key)">
+
+                            @key
+
+                        </button>
+                    }
+
+                </div>
+            }
+
+            @if (MenuService.State.Keyboard.Mode == "Characters")
+            {
+                <div class="keyboard-grid">
+
+                    @foreach (var key in CharacterKeys)
+                    {
+                        <button type="button"
+                                class="key-button"
+                                @onclick="() => KeyboardKey(key)">
+
+                            @key
+
+                        </button>
+                    }
+
+                </div>
+            }
+
+            <div class="keyboard-actions">
+
+                <button type="button"
+                        class="keyboard-action"
+                        @onclick="KeyboardNumbers">
+
+                    123
+
+                </button>
+
+                <button type="button"
+                        class="keyboard-action"
+                        @onclick="KeyboardCharacters">
+
+                    کاراکترها
+
+                </button>
+
+                <button type="button"
+                        class="keyboard-action"
+                        @onclick="KeyboardDelete">
+
+                    DEL
+
+                </button>
+
+                <button type="button"
+                        class="keyboard-action"
+                        @onclick="KeyboardCancel">
+
+                    CANCEL
+
+                </button>
+
+                <button type="button"
+                        class="keyboard-action enter-button"
+                        @onclick="KeyboardEnter">
+
+                    ENTER
+
+                </button>
+
+            </div>
+
+        </div>
+    }
+
+
+    <!-- ========================================================= -->
+    <!-- BOX PAGE -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.BoxPage)
+    {
+        <div class="diagnostic-panel">
+
+            <h3>
+                @MenuService.State.Header
+            </h3>
+
+            @foreach (var item in MenuService.State.Items)
+            {
+                <button type="button"
+                        class="diagnostic-button"
+                        @onclick="() => SelectMenuItem(item.Index)">
+
+                    @item.Text
+
+                </button>
+            }
+
+        </div>
+    }
+
+
+    <!-- ========================================================= -->
+    <!-- SOFTWARE LIST -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.SoftwareList)
+    {
+        <div class="software-page">
+
+            <div class="software-header">
+                @MenuService.State.Header
+            </div>
+
+            <div class="software-content">
+
+                @foreach (var item in MenuService.State.Items)
                 {
-                    <div class="memo-line">
-                        @line
+                    <div class="software-row">
+                        @item.Text
                     </div>
                 }
 
             </div>
-        }
 
-    </div>
-}
+        </div>
+    }
 
 
-@* =========================================================
-   SELECT PAGE
-   ========================================================= *@
+    <!-- ========================================================= -->
+    <!-- MESSAGE -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.Message)
+    {
+        <div class="diagnostic-panel">
 
-@if (MenuService.State.Screen == MenuScreen.SelectPage)
-{
-    <div class="diagnostic-panel">
+            <h3>
+                @MenuService.State.Header
+            </h3>
 
-        <h3>@MenuService.State.Header</h3>
+            <div class="message-box">
+                @MenuService.State.Message
+            </div>
 
-        @foreach (var item in MenuService.State.Items)
-        {
-            <div style="margin:8px 0;">
+            <button type="button"
+                    class="diagnostic-button"
+                    @onclick="ContinueMessage">
 
-                <input type="checkbox"
-                       checked="@item.Checked"
-                       @onchange="e => SetCheckBox(
-                                           item.Index,
-                                           (bool)e.Value!)" />
+                ادامه
 
-<span style="margin-left:8px;">
-                    @item.Text
-                </span>
+            </button>
+
+        </div>
+    }
+
+
+    <!-- ========================================================= -->
+    <!-- MEMO -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.Memo)
+    {
+        <div class="memo-page">
+
+            <h2>
+                @MenuService.State.Header
+            </h2>
+
+            @foreach (var record in MenuService.State.MemoRecords)
+            {
+                <div class="memo-record">
+
+                    <div class="memo-title">
+                        @record.Title
+                    </div>
+
+                    @foreach (var line in record.Lines)
+                    {
+                        <div class="memo-line">
+                            @line
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+    }
+
+
+    <!-- ========================================================= -->
+    <!-- SELECT PAGE -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.SelectPage)
+    {
+        <div class="diagnostic-panel">
+
+            <h3>
+                @MenuService.State.Header
+            </h3>
+
+            @foreach (var item in MenuService.State.Items)
+            {
+                <div class="checkbox-row">
+
+                    <input type="checkbox"
+                           checked="@item.Checked"
+                           @onchange="e => SetCheckBox(
+                                                   item.Index,
+                                                   e.Value is bool checkedValue && checkedValue)" />
+
+<span>
+                        @item.Text
+                    </span>
+
+                </div>
+            }
+
+        </div>
+    }
+
+
+    <!-- ========================================================= -->
+    <!-- PARAMETERS -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.Parameters)
+    {
+        <div class="parameters-page">
+
+            <div class="parameters-header">
+                @MenuService.State.Header
+            </div>
+
+            <div class="parameters-table-wrapper">
+
+                <table class="parameters-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Parameter</th>
+                            <th>Description</th>
+                            <th>Unit</th>
+                            <th>Value</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var parameter in MenuService.State.Parameters)
+                        {
+                            <tr class="@(parameter.IsActive
+                                                                ? "parameter-active"
+                                                                : "parameter-inactive")">
+
+                                <td>
+                                    @parameter.Index
+                                </td>
+
+                                <td>
+                                    @parameter.Col0
+                                </td>
+
+                                <td>
+                                    @parameter.Col1
+                                </td>
+
+                                <td>
+                                    @parameter.Col2
+                                </td>
+
+                                <td class="parameter-value">
+                                    @parameter.CurrentValue
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
 
             </div>
-        }
 
-    </div>
-}
-
-
-@* =========================================================
-   PARAMETERS
-   ========================================================= *@
-
-@if (MenuService.State.Screen == MenuScreen.Parameters)
-{
-    <div class="parameters-page">
-
-        <div class="parameters-header">
-            @MenuService.State.Header
         </div>
+    }
 
-        <div class="parameters-table-wrapper">
 
-            <table class="parameters-table">
+    <!-- ========================================================= -->
+    <!-- SENSOR -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen == MenuScreen.Sensor)
+    {
+        <div class="diagnostic-panel">
+
+            <h3>
+                @MenuService.State.Header
+            </h3>
+
+            <table class="sensor-table">
 
                 <thead>
 
                     <tr>
                         <th>#</th>
-                        <th>Parameter</th>
-                        <th>Description</th>
-                        <th>Unit</th>
                         <th>Value</th>
                     </tr>
 
@@ -305,26 +463,14 @@
                     @foreach (var parameter in MenuService.State.Parameters)
                     {
                         <tr class="@(parameter.IsActive
-                                                                 ? "parameter-active"
-                                                                 : "parameter-inactive")">
+                                                        ? "sensor-active"
+                                                        : "sensor-inactive")">
 
                             <td>
                                 @parameter.Index
                             </td>
 
-                            <td>
-                                @parameter.Col0
-                            </td>
-
-                            <td>
-                                @parameter.Col1
-                            </td>
-
-                            <td>
-                                @parameter.Col2
-                            </td>
-
-                            <td class="parameter-value">
+                            <td class="sensor-value">
                                 @parameter.CurrentValue
                             </td>
 
@@ -335,116 +481,125 @@
 
             </table>
 
+            @if (MenuService.State.Items.Count > 0)
+            {
+                <div class="sensor-buttons">
+
+                    @foreach (var item in MenuService.State.Items)
+                    {
+                        <button type="button"
+                                class="diagnostic-button"
+                                @onclick="() => SelectSensorItem(item.Index)">
+
+                            @item.Text
+
+                        </button>
+                    }
+
+                </div>
+            }
+
         </div>
-
-    </div>
-}
+    }
 
 
-@* =========================================================
-   SENSOR
-   ========================================================= *@
+    <!-- ========================================================= -->
+    <!-- BACK -->
+    <!-- ========================================================= -->
+    @if (MenuService.State.Screen != MenuScreen.None)
+    {
+        <div class="back-container">
 
-@if (MenuService.State.Screen == MenuScreen.Sensor)
-{
-    <div class="diagnostic-panel">
+            <button type="button"
+                    class="diagnostic-button back-button"
+                    @onclick="Back">
 
-        <h3>@MenuService.State.Header</h3>
+                Back
 
-        <table style="
-            width:100%;
-            border-collapse:collapse;">
+            </button>
 
-            <thead>
+        </div>
+    }
 
-                <tr>
-
-                    <th style="
-                        border:1px solid #ccc;
-                        padding:8px;">
-                        #
-                    </th>
-
-                    <th style="
-                        border:1px solid #ccc;
-                        padding:8px;">
-                        Value
-                    </th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                @foreach (var parameter in MenuService.State.Parameters)
-                {
-                    <tr>
-
-                        <td style="
-                            border:1px solid #ccc;
-                            padding:8px;">
-
-                            @parameter.Index
-
-                        </td>
-
-                        <td style="
-                            border:1px solid #ccc;
-                            padding:8px;">
-
-                            @parameter.Value
-
-                        </td>
-
-                    </tr>
-                }
-
-            </tbody>
-
-        </table>
-
-        @if (MenuService.State.Items.Count > 0)
-        {
-            <div style="margin-top:15px;">
-
-                @foreach (var item in MenuService.State.Items)
-                {
-                    <button class="diagnostic-button"
-                            @onclick="() => SelectSensorItem(item.Index)">
-
-                        @item.Text
-
-                    </button>
-                }
-
-            </div>
-        }
-
-    </div>
-}
-
-
-@* =========================================================
-   BACK
-   ========================================================= *@
-
-@if (MenuService.State.Screen != MenuScreen.None)
-{
-    <div style="margin-top:20px;">
-
-        <button class="diagnostic-button"
-                @onclick="Back">
-
-            Back
-
-        </button>
-
-    </div>
-}
+</div>
 
 
 <style>
+
+    .diagnostic-container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .tcp-server-panel {
+        border: 1px solid #999;
+        border-radius: 8px;
+        padding: 18px;
+        margin-bottom: 25px;
+        background: #f7f7f7;
+    }
+
+    .tcp-server-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+
+    .tcp-status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-label {
+        font-weight: bold;
+    }
+
+    .status-connected {
+        color: green;
+        font-weight: bold;
+    }
+
+    .status-disconnected {
+        color: #c00000;
+        font-weight: bold;
+    }
+
+    .endpoint {
+        font-family: monospace;
+        direction: ltr;
+    }
+
+    .tcp-buttons {
+        margin-top: 10px;
+    }
+
+    .tcp-button {
+        padding: 10px 18px;
+        border-radius: 5px;
+        border: 1px solid #888;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .start-button {
+        background: #e8f5e9;
+    }
+
+    .stop-button {
+        background: #ffebee;
+    }
 
     .diagnostic-panel {
         border: 1px solid #ccc;
@@ -453,6 +608,11 @@
         margin-top: 20px;
         background: #fafafa;
     }
+
+        .diagnostic-panel h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
 
     .diagnostic-button {
         display: block;
@@ -464,11 +624,29 @@
         background: #eee;
         cursor: pointer;
         font-size: 16px;
+        box-sizing: border-box;
     }
 
         .diagnostic-button:hover {
             background: #ddd;
         }
+
+    .back-button {
+        background: #f0f0f0;
+    }
+
+    .back-container {
+        margin-top: 20px;
+    }
+
+    .message-box {
+        padding: 20px;
+        border: 1px solid #ccc;
+        margin-bottom: 15px;
+        white-space: pre-wrap;
+        background: white;
+        min-height: 60px;
+    }
 
     .software-page {
         margin-top: 20px;
@@ -498,9 +676,52 @@
         line-height: 1.7;
     }
 
+    .memo-page {
+        margin-top: 20px;
+        border: 1px solid #999;
+        border-radius: 6px;
+        padding: 20px;
+        background: white;
+    }
+
+        .memo-page h2 {
+            margin-top: 0;
+        }
+
+    .memo-record {
+        border: 1px solid #ddd;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .memo-title {
+        padding: 10px;
+        font-weight: bold;
+        background: #f2f2f2;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .memo-line {
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .checkbox-row {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .checkbox-row input {
+            width: 18px;
+            height: 18px;
+        }
+
     .parameters-page {
         width: 100%;
-        height: 100%;
+        margin-top: 20px;
         display: flex;
         flex-direction: column;
     }
@@ -510,12 +731,11 @@
         text-align: center;
         font-size: 20px;
         font-weight: bold;
-        border-bottom: 1px solid #999;
+        border: 1px solid #999;
         background: #f2f2f2;
     }
 
     .parameters-table-wrapper {
-        flex: 1;
         overflow-y: auto;
         overflow-x: auto;
     }
@@ -552,15 +772,130 @@
         direction: ltr;
     }
 
+    .sensor-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .sensor-table th,
+        .sensor-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        .sensor-table th {
+            background: #eee;
+        }
+
+    .sensor-active {
+        background: white;
+    }
+
+    .sensor-inactive {
+        background: #808080;
+    }
+
+    .sensor-value {
+        direction: ltr;
+        font-weight: bold;
+    }
+
+    .sensor-buttons {
+        margin-top: 15px;
+    }
+
+    .keyboard-panel {
+        border: 1px solid #999;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        background: #fafafa;
+    }
+
+        .keyboard-panel h2 {
+            margin-top: 0;
+        }
+
+    .keyboard-input {
+        width: 100%;
+        padding: 12px;
+        box-sizing: border-box;
+        font-size: 18px;
+        margin-bottom: 15px;
+        border: 1px solid #aaa;
+        border-radius: 5px;
+        direction: ltr;
+    }
+
+    .keyboard-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .key-button {
+        padding: 12px;
+        border: 1px solid #aaa;
+        border-radius: 5px;
+        background: #eee;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+        .key-button:hover {
+            background: #ddd;
+        }
+
+    .keyboard-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .keyboard-action {
+        flex: 1;
+        min-width: 100px;
+        padding: 12px;
+        border: 1px solid #aaa;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #eee;
+    }
+
+    .enter-button {
+        font-weight: bold;
+        background: #e0e0e0;
+    }
+
+    @@media (max-width: 700px) {
+
+        .diagnostic-container {
+            padding: 10px;
+        }
+
+        .tcp-status-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .keyboard-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .parameters-table th,
+        .parameters-table td {
+            font-size: 12px;
+            padding: 6px;
+        }
+    }
+
 </style>
 
 
 @code
 {
-    // =========================================================
-    // KEYBOARD
-    // =========================================================
-
     private readonly string[] LetterKeys =
     {
         "A", "B", "C", "D", "E", "F",
@@ -588,96 +923,77 @@
     };
 
 
-    // =========================================================
-    // KEYBOARD FUNCTIONS
-    // =========================================================
+    /* ========================================================= */
+    /* TCP SERVER */
+    /* ========================================================= */
 
-    private void KeyboardKey(string key)
+    private async Task StartTcpServer()
     {
-        MenuService.State.Keyboard.Value += key;
-
-        Console.WriteLine(
-            $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
-
-        StateHasChanged();
-    }
-
-    private void KeyboardNumbers()
-    {
-        MenuService.State.Keyboard.Mode = "Numbers";
-
-        StateHasChanged();
-    }
-
-    private void KeyboardCharacters()
-    {
-        MenuService.State.Keyboard.Mode = "Characters";
-
-        StateHasChanged();
-    }
-
-    private void KeyboardDelete()
-    {
-        string value = MenuService.State.Keyboard.Value;
-
-        if (!string.IsNullOrEmpty(value))
-        {
-            MenuService.State.Keyboard.Value =
-                value[..^1];
-        }
-
-        StateHasChanged();
-    }
-
-    private void KeyboardCancel()
-    {
-        MenuService.State.Keyboard.Visible = false;
-
-        MenuService.State.Screen =
-            MenuService.State.Keyboard.PreviousScreen;
-
-        StateHasChanged();
-    }
-
-    private async Task KeyboardEnter()
-    {
-        Console.WriteLine(
-            "========== KEYBOARD ENTER ==========");
-
-        string value =
-            MenuService.State.Keyboard.Value;
-
-        Console.WriteLine(
-            $"VALUE = [{value}]");
-
-        if (string.IsNullOrEmpty(value))
-            return;
-
         try
         {
+            Console.WriteLine();
             Console.WriteLine(
-                "SENDING VALUE THROUGH TCP...");
+                "========== HOME: START TCP ==========");
 
-            await DiagnosticService.SendAsync(value);
+            if (!TcpServer.IsRunning)
+            {
+                await TcpServer.StartAsync(9000);
+
+                Console.WriteLine(
+                    "TCP Server started from Home.");
+            }
+
+            if (!DiagnosticService.IsRunning)
+            {
+                DiagnosticService.Start();
+
+                Console.WriteLine(
+                    "DiagnosticService started from Home.");
+            }
 
             Console.WriteLine(
-                "TCP SEND FINISHED");
-
-            MenuService.State.Keyboard.Visible = false;
-
-            StateHasChanged();
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"KEYBOARD TCP ERROR: {ex.Message}");
+                $"TCP SERVER START ERROR: {ex}");
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
 
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
+    private async Task StopTcpServer()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== HOME: STOP TCP ==========");
+
+            DiagnosticService.Stop();
+            TcpServer.Stop();
+
+            Console.WriteLine(
+                "TCP Server stopped from Home.");
+
+            Console.WriteLine(
+                "===================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"TCP SERVER STOP ERROR: {ex}");
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    /* ========================================================= */
+    /* INITIALIZATION */
+    /* ========================================================= */
 
     protected override async Task OnInitializedAsync()
     {
@@ -690,125 +1006,339 @@
         MenuService.StateChanged +=
             OnMenuStateChanged;
 
+        TcpServer.LogReceived +=
+            OnTcpLogReceived;
+
         try
         {
-            await TcpServer.StartAsync(9000);
+            if (!TcpServer.IsRunning)
+            {
+                await TcpServer.StartAsync(9000);
 
-            Console.WriteLine(
-                "TCP Server started automatically from Home.");
+                Console.WriteLine(
+                    "TCP Server started automatically from Home.");
+            }
+
+            if (!DiagnosticService.IsRunning)
+            {
+                DiagnosticService.Start();
+
+                Console.WriteLine(
+                    "DiagnosticService started automatically.");
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"TCP SERVER START ERROR: {ex.Message}");
+                $"TCP INITIALIZATION ERROR: {ex}");
         }
 
-        DiagnosticService.Start();
+        await InvokeAsync(StateHasChanged);
     }
 
 
-    // =========================================================
-    // DIAGNOSTIC EVENTS
-    // =========================================================
+    /* ========================================================= */
+    /* EVENTS */
+    /* ========================================================= */
+
+    private void OnTcpLogReceived(string message)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
 
     private void OnDiagnosticMessageReceived(string message)
     {
-        _ = InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
+        Console.WriteLine(
+            $"HOME <- DIAGNOSTIC MESSAGE ({message.Length} chars)");
+
+        _ = InvokeAsync(StateHasChanged);
     }
+
 
     private void OnDiagnosticDataReceived(string[] data)
     {
-        _ = InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
+        string type =
+            data != null && data.Length > 1
+                ? data[1]
+                : "UNKNOWN";
+
+        Console.WriteLine(
+            $"HOME <- DIAGNOSTIC DATA Type=[{type}]");
+
+        _ = InvokeAsync(StateHasChanged);
     }
+
 
     private void OnMenuStateChanged()
     {
-        _ = InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
+        Console.WriteLine(
+            $"HOME <- MENU STATE CHANGED " +
+            $"Screen={MenuService.State.Screen}");
+
+        _ = InvokeAsync(StateHasChanged);
     }
 
 
-    // =========================================================
-    // MENU COMMANDS
-    // =========================================================
+    /* ========================================================= */
+    /* KEYBOARD */
+    /* ========================================================= */
+
+    private void KeyboardKey(string key)
+    {
+        MenuService.State.Keyboard.Value += key;
+
+        Console.WriteLine(
+            $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
+
+        StateHasChanged();
+    }
+
+
+    private void KeyboardNumbers()
+    {
+        MenuService.State.Keyboard.Mode = "Numbers";
+
+        StateHasChanged();
+    }
+
+
+    private void KeyboardCharacters()
+    {
+        MenuService.State.Keyboard.Mode = "Characters";
+
+        StateHasChanged();
+    }
+
+
+    private void KeyboardDelete()
+    {
+        string value =
+            MenuService.State.Keyboard.Value;
+
+        if (!string.IsNullOrEmpty(value))
+        {
+            MenuService.State.Keyboard.Value =
+                value[..^1];
+        }
+
+        StateHasChanged();
+    }
+
+
+    private void KeyboardCancel()
+    {
+        MenuService.State.Keyboard.Visible = false;
+
+        MenuService.State.Screen =
+            MenuService.State.Keyboard.PreviousScreen;
+
+        StateHasChanged();
+    }
+
+
+    private async Task KeyboardEnter()
+    {
+        string value =
+            MenuService.State.Keyboard.Value;
+
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== KEYBOARD ENTER ==========");
+
+            Console.WriteLine(
+                $"UI -> KEYBOARD COMMAND: [{value}]");
+
+            await DiagnosticService.SendAsync(value);
+
+            Console.WriteLine(
+                $"UI -> KEYBOARD COMMAND SENT: [{value}]");
+
+            Console.WriteLine(
+                "====================================");
+
+            MenuService.State.Keyboard.Visible = false;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"KEYBOARD TCP ERROR: {ex}");
+        }
+    }
+
+
+    /* ========================================================= */
+    /* MENU COMMANDS */
+    /* ========================================================= */
 
     private async Task SelectMenuItem(int index)
     {
         try
         {
-            await MenuService.SelectMenuItem(index);
+            string command = index.ToString();
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== UI MENU COMMAND ==========");
+
+            Console.WriteLine(
+                $"COMMAND = [{command}]");
+
+            await DiagnosticService.SendAsync(command);
+
+            Console.WriteLine(
+                $"UI -> MENU COMMAND SENT: [{command}]");
+
+            Console.WriteLine(
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"SelectMenuItem error: {ex.Message}");
+                $"SelectMenuItem ERROR: {ex}");
         }
     }
+
+
+    /* ========================================================= */
+    /* SENSOR */
+    /* ========================================================= */
 
     private async Task SelectSensorItem(int index)
     {
         try
         {
-            await MenuService.SelectSensorItem(index);
+            string command = index.ToString();
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "========= UI SENSOR COMMAND =========");
+
+            Console.WriteLine(
+                $"COMMAND = [{command}]");
+
+            await DiagnosticService.SendAsync(command);
+
+            Console.WriteLine(
+                $"UI -> SENSOR COMMAND SENT: [{command}]");
+
+            Console.WriteLine(
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"SelectSensorItem error: {ex.Message}");
+                $"SelectSensorItem ERROR: {ex}");
         }
     }
+
+
+    /* ========================================================= */
+    /* CHECKBOX */
+    /* ========================================================= */
 
     private async Task SetCheckBox(int index, bool value)
     {
         try
         {
-            await MenuService.SetCheckBox(index, value);
+            string command =
+                $"{index},{(value ? 1 : 0)}";
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "========= UI CHECKBOX COMMAND ========");
+
+            Console.WriteLine(
+                $"COMMAND = [{command}]");
+
+            await DiagnosticService.SendAsync(command);
+
+            Console.WriteLine(
+                $"UI -> CHECKBOX COMMAND SENT: [{command}]");
+
+            Console.WriteLine(
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"SetCheckBox error: {ex.Message}");
+                $"SetCheckBox ERROR: {ex}");
         }
     }
+
+
+    /* ========================================================= */
+    /* MESSAGE */
+    /* ========================================================= */
 
     private async Task ContinueMessage()
     {
         try
         {
-            await MenuService.ContinueMessage();
+            Console.WriteLine();
+            Console.WriteLine(
+                "======== UI CONTINUE COMMAND =========");
+
+            Console.WriteLine(
+                "COMMAND = [0]");
+
+            await DiagnosticService.SendAsync("0");
+
+            Console.WriteLine(
+                "UI -> CONTINUE COMMAND SENT: [0]");
+
+            Console.WriteLine(
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"ContinueMessage error: {ex.Message}");
+                $"ContinueMessage ERROR: {ex}");
         }
     }
+
+
+    /* ========================================================= */
+    /* BACK */
+    /* ========================================================= */
 
     private async Task Back()
     {
         try
         {
-            await MenuService.Back();
+            Console.WriteLine();
+            Console.WriteLine(
+                "=========== UI BACK COMMAND ==========");
+
+            Console.WriteLine(
+                "COMMAND = [-1]");
+
+            await DiagnosticService.SendAsync("-1");
+
+            Console.WriteLine(
+                "UI -> BACK COMMAND SENT: [-1]");
+
+            Console.WriteLine(
+                "=====================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Back error: {ex.Message}");
+                $"Back ERROR: {ex}");
         }
     }
 
 
-    // =========================================================
-    // DISPOSE
-    // =========================================================
+    /* ========================================================= */
+    /* DISPOSE */
+    /* ========================================================= */
 
     public void Dispose()
     {
@@ -821,6 +1351,7 @@
         MenuService.StateChanged -=
             OnMenuStateChanged;
 
-        DiagnosticService.Stop();
+        TcpServer.LogReceived -=
+            OnTcpLogReceived;
     }
 }

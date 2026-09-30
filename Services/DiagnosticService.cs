@@ -11,30 +11,28 @@ public class DiagnosticService : IDisposable
 
     private readonly byte[] _messageEnd =
     {
-        0xE2, 0x97, 0x89
+        0xE2, 0x97, 0x89 // ◉
     };
+
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+
+    public bool IsRunning { get; private set; }
 
     public event Action<string>? RawDataReceived;
     public event Action<string>? MessageReceived;
     public event Action<string[]>? DiagnosticDataReceived;
-
-    public bool IsRunning { get; private set; }
 
     public DiagnosticService(
         DiagnosticTcpServerService tcpServer)
     {
         _tcpServer = tcpServer;
 
-        // =========================================
-        // دریافت فقط از TCP
-        // =========================================
-
         _tcpServer.DataReceived += OnTcpDataReceived;
     }
 
-    // =========================================
+    // =========================================================
     // TCP RECEIVE
-    // =========================================
+    // =========================================================
 
     private void OnTcpDataReceived(byte[] data)
     {
@@ -44,40 +42,28 @@ public class DiagnosticService : IDisposable
         if (data == null || data.Length == 0)
             return;
 
-        ProcessReceivedBytes(data);
-    }
-
-    // =========================================
-    // COMMON RECEIVE PROCESSING
-    // =========================================
-
-    private void ProcessReceivedBytes(byte[] bytes)
-    {
         try
         {
-            // نمایش RAW HEX
-            string hex =
-                Convert.ToHexString(bytes)
-                    .Replace("-", " ");
-
-            RawDataReceived?.Invoke(hex);
-
-            // اضافه کردن داده به بافر
-            _receiveBuffer.AddRange(bytes);
-
-            // پردازش پیام‌ها
-            ProcessReceiveBuffer();
+            ProcessReceivedBytes(data);
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Diagnostic receive processing error: {ex.Message}");
+                $"Diagnostic TCP processing ERROR: {ex}");
         }
     }
 
-    // =========================================
-    // MESSAGE BUFFER
-    // =========================================
+    private void ProcessReceivedBytes(byte[] bytes)
+    {
+        string hex =
+            Convert.ToHexString(bytes);
+
+        RawDataReceived?.Invoke(hex);
+
+        _receiveBuffer.AddRange(bytes);
+
+        ProcessReceiveBuffer();
+    }
 
     private void ProcessReceiveBuffer()
     {
@@ -85,7 +71,6 @@ public class DiagnosticService : IDisposable
         {
             int endIndex = FindMessageEnd();
 
-            // هنوز پیام کامل نشده
             if (endIndex < 0)
                 return;
 
@@ -104,15 +89,20 @@ public class DiagnosticService : IDisposable
             string message =
                 Encoding.UTF8.GetString(messageBytes);
 
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== COMPLETE DIAGNOSTIC MESSAGE ==========");
+
+            Console.WriteLine(message);
+
+            Console.WriteLine(
+                "==================================================");
+
             MessageReceived?.Invoke(message);
 
             ProcessMessage(message);
         }
     }
-
-    // =========================================
-    // FIND ◆ DELIMITER
-    // =========================================
 
     private int FindMessageEnd()
     {
@@ -136,57 +126,37 @@ public class DiagnosticService : IDisposable
         return -1;
     }
 
-    // =========================================
-    // DIAGNOSTIC MESSAGE
-    // =========================================
+    // =========================================================
+    // PARSE
+    // =========================================================
 
     private void ProcessMessage(string message)
     {
-        Console.WriteLine();
-        Console.WriteLine(
-            "========== DIAGNOSTIC MESSAGE ==========");
-
-        Console.WriteLine(message);
-
-        Console.WriteLine(
-            "=========================================");
-        Console.WriteLine();
-
         string[] parts =
             ParseMessage(message);
-        Console.WriteLine();
-        Console.WriteLine("========== PARSED DATA ==========");
 
-        for (int i = 0; i < parts.Length; i++)
-        {
-            Console.WriteLine($"[{i}] = [{parts[i]}]");
-        }
-
-        Console.WriteLine("=================================");
-
-
-
+        Console.WriteLine(
+            $"Parsed diagnostic fields: {parts.Length}");
 
         if (parts.Length == 0)
             return;
 
-        // مثال:
-        //
-        // ◆Type◆14◆Message◆...
-        //
-        // یا
-        //
-        // ◆Type◆20◆Count◆...
-        //
-        if (parts[0] == "Type")
+        if (!string.Equals(
+                parts[0].Trim(),
+                "Type",
+                StringComparison.OrdinalIgnoreCase))
         {
-            DiagnosticDataReceived?.Invoke(parts);
-        }
-    }
+            Console.WriteLine(
+                $"Ignoring non-Type message. First field = [{parts[0]}]");
 
-    // =========================================
-    // PARSE ◆...◆
-    // =========================================
+            return;
+        }
+
+        Console.WriteLine(
+            $"Diagnostic TYPE = [{(parts.Length > 1 ? parts[1] : "")}]");
+
+        DiagnosticDataReceived?.Invoke(parts);
+    }
 
     private string[] ParseMessage(string message)
     {
@@ -209,24 +179,66 @@ public class DiagnosticService : IDisposable
         return result.ToArray();
     }
 
-    // =========================================
-    // START
-    // =========================================
+    // =========================================================
+    // SEND
+    // =========================================================
+
+    public async Task SendAsync(string command)
+    {
+        if (string.IsNullOrEmpty(command))
+            return;
+
+        if (!_tcpServer.IsClientConnected)
+            throw new InvalidOperationException(
+                "TCP client is not connected.");
+
+        // IMPORTANT:
+        // The diagnostic device expects commands terminated by LF.
+        //string commandWithNewLine = command + "\n";
+
+        //byte[] data = Encoding.UTF8.GetBytes(commandWithNewLine);
+
+        byte[] data = Encoding.UTF8.GetBytes(command);
+
+        Console.WriteLine();
+        Console.WriteLine("=================================");
+        Console.WriteLine("DIAGNOSTIC COMMAND");
+        Console.WriteLine($"COMMAND = [{command}]");
+        //Console.WriteLine($"COMMAND WITH LF = [{commandWithNewLine}]");
+        Console.WriteLine($"HEX = {Convert.ToHexString(data)}");
+        Console.WriteLine("=================================");
+
+        await _tcpServer.SendAsync(data);
+
+        Console.WriteLine("DIAGNOSTIC COMMAND SENT SUCCESSFULLY");
+    }
+
+
+    public Task Send(string command)
+    {
+        return SendAsync(command);
+    }
+
+    // =========================================================
+    // LIFECYCLE
+    // =========================================================
 
     public void Start()
     {
+        if (IsRunning)
+            return;
+
         IsRunning = true;
 
         Console.WriteLine(
             "DiagnosticService started.");
     }
 
-    // =========================================
-    // STOP
-    // =========================================
-
     public void Stop()
     {
+        if (!IsRunning)
+            return;
+
         IsRunning = false;
 
         _receiveBuffer.Clear();
@@ -235,39 +247,12 @@ public class DiagnosticService : IDisposable
             "DiagnosticService stopped.");
     }
 
-    // =========================================
-    // SEND COMMAND THROUGH TCP
-    // =========================================
-
-    public async Task SendAsync(string command)
-    {
-        if (string.IsNullOrWhiteSpace(command))
-            return;
-
-        if (!_tcpServer.IsClientConnected)
-        {
-            throw new InvalidOperationException(
-                "TCP client is not connected.");
-        }
-
-        byte[] data =
-            Encoding.UTF8.GetBytes(
-                command + "\n");
-
-        await _tcpServer.SendAsync(data);
-
-        Console.WriteLine(
-            $"Diagnostic TX: {command}");
-    }
-
-    // =========================================
-    // DISPOSE
-    // =========================================
-
     public void Dispose()
     {
         _tcpServer.DataReceived -=
             OnTcpDataReceived;
+
+        _sendLock.Dispose();
 
         _receiveBuffer.Clear();
     }
