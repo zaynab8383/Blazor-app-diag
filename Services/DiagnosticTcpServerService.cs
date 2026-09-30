@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace MyBlazorApp1.Services;
 
@@ -12,6 +11,9 @@ public class DiagnosticTcpServerService : IDisposable
 
     private readonly object _lock = new();
 
+    private readonly SemaphoreSlim _sendLock =
+        new(1, 1);
+
     public bool IsRunning { get; private set; }
 
     public bool IsClientConnected
@@ -20,7 +22,10 @@ public class DiagnosticTcpServerService : IDisposable
         {
             lock (_lock)
             {
-                return _client?.Connected ?? false;
+                return
+                    _client != null &&
+                    _client.Connected &&
+                    _stream != null;
             }
         }
     }
@@ -31,47 +36,62 @@ public class DiagnosticTcpServerService : IDisposable
         {
             lock (_lock)
             {
-                return _client?.Client.RemoteEndPoint?.ToString();
+                return _client?
+                    .Client?
+                    .RemoteEndPoint?
+                    .ToString();
             }
         }
     }
 
-    // داده خام دریافتی از TCP
     public event Action<byte[]>? DataReceived;
 
-    // لاگ‌های TCP
     public event Action<string>? LogReceived;
 
-
     // =========================================================
-    // START SERVER
+    // START
     // =========================================================
 
-    public async Task StartAsync(int port = 9000)
+    public async Task StartAsync(
+        int port = 9000)
     {
         if (IsRunning)
         {
-            Console.WriteLine("TCP Server is already running.");
+            Console.WriteLine(
+                "TCP Server is already running.");
+
             return;
         }
 
         try
         {
-            _server = new TcpListener(
-                IPAddress.Any,
-                port);
+            _server =
+                new TcpListener(
+                    IPAddress.Any,
+                    port);
 
             _server.Start();
 
             IsRunning = true;
 
-            Console.WriteLine("=================================");
-            Console.WriteLine("       DIAGNOSTIC TCP SERVER");
-            Console.WriteLine("=================================");
+            Console.WriteLine();
+            Console.WriteLine(
+                "=================================");
+
+            Console.WriteLine(
+                "       DIAGNOSTIC TCP SERVER");
+
+            Console.WriteLine(
+                "=================================");
+
             Console.WriteLine(
                 $"TCP Server listening on port {port}");
-            Console.WriteLine("Waiting for client...");
-            Console.WriteLine("=================================");
+
+            Console.WriteLine(
+                "Waiting for client...");
+
+            Console.WriteLine(
+                "=================================");
 
             LogReceived?.Invoke(
                 $"TCP Server listening on port {port}");
@@ -79,8 +99,6 @@ public class DiagnosticTcpServerService : IDisposable
             LogReceived?.Invoke(
                 "Waiting for client...");
 
-            // منتظر Client نمی‌مانیم.
-            // Loop در background اجرا می‌شود.
             _ = AcceptClientLoopAsync();
         }
         catch (Exception ex)
@@ -99,7 +117,6 @@ public class DiagnosticTcpServerService : IDisposable
         await Task.CompletedTask;
     }
 
-
     // =========================================================
     // ACCEPT CLIENT
     // =========================================================
@@ -115,11 +132,13 @@ public class DiagnosticTcpServerService : IDisposable
             try
             {
                 client =
-                    await _server.AcceptTcpClientAsync();
+                    await _server
+                        .AcceptTcpClientAsync();
+
+                client.NoDelay = true;
 
                 lock (_lock)
                 {
-                    // بستن Client قبلی
                     try
                     {
                         _stream?.Close();
@@ -137,23 +156,34 @@ public class DiagnosticTcpServerService : IDisposable
                     }
 
                     _client = client;
-                    _stream = client.GetStream();
+                    _stream =
+                        client.GetStream();
                 }
 
                 string endpoint =
-                    client.Client.RemoteEndPoint?.ToString()
+                    client.Client
+                        .RemoteEndPoint?
+                        .ToString()
                     ?? "Unknown";
 
                 Console.WriteLine();
-                Console.WriteLine("=================================");
-                Console.WriteLine("TCP CLIENT CONNECTED");
-                Console.WriteLine($"Client: {endpoint}");
-                Console.WriteLine("=================================");
+                Console.WriteLine(
+                    "=================================");
+
+                Console.WriteLine(
+                    "TCP CLIENT CONNECTED");
+
+                Console.WriteLine(
+                    $"Client: {endpoint}");
+
+                Console.WriteLine(
+                    "=================================");
 
                 LogReceived?.Invoke(
                     $"Client connected: {endpoint}");
 
-                await ReceiveLoopAsync(client);
+                await ReceiveLoopAsync(
+                    client);
             }
             catch (ObjectDisposedException)
             {
@@ -222,9 +252,8 @@ public class DiagnosticTcpServerService : IDisposable
         }
     }
 
-
     // =========================================================
-    // RECEIVE TCP DATA
+    // RECEIVE
     // =========================================================
 
     private async Task ReceiveLoopAsync(
@@ -234,7 +263,7 @@ public class DiagnosticTcpServerService : IDisposable
             client.GetStream();
 
         byte[] buffer =
-            new byte[4096];
+            new byte[8192];
 
         try
         {
@@ -243,34 +272,34 @@ public class DiagnosticTcpServerService : IDisposable
                 client.Connected)
             {
                 int bytesRead =
-                    await stream.ReadAsync(buffer);
+                    await stream.ReadAsync(
+                        buffer.AsMemory(
+                            0,
+                            buffer.Length));
 
                 if (bytesRead == 0)
-                {
                     break;
-                }
 
                 byte[] data =
-                    new byte[bytesRead];
+                    buffer
+                        .Take(bytesRead)
+                        .ToArray();
 
-                Array.Copy(
-                    buffer,
-                    0,
-                    data,
-                    0,
-                    bytesRead);
+                string hex =
+                    Convert.ToHexString(data);
+
+                Console.WriteLine();
+                Console.WriteLine(
+                    $"TCP RX [{DateTime.Now:HH:mm:ss.fff}]");
 
                 Console.WriteLine(
-                    $"TCP RX [{DateTime.Now:HH:mm:ss.fff}] " +
-                    $"{bytesRead} bytes");
+                    $"BYTES = {bytesRead}");
+
+                Console.WriteLine(
+                    $"HEX = {hex}");
 
                 LogReceived?.Invoke(
-                    $"RX [{DateTime.Now:HH:mm:ss.fff}] " +
-                    $"{bytesRead} bytes");
-
-                // =================================================
-                // داده خام به DiagnosticService
-                // =================================================
+                    $"RX [{DateTime.Now:HH:mm:ss.fff}] {bytesRead} bytes");
 
                 DataReceived?.Invoke(data);
             }
@@ -288,7 +317,6 @@ public class DiagnosticTcpServerService : IDisposable
         }
         catch (ObjectDisposedException)
         {
-            // اتصال بسته شده است
         }
         catch (Exception ex)
         {
@@ -303,77 +331,93 @@ public class DiagnosticTcpServerService : IDisposable
         }
     }
 
-
     // =========================================================
-    // SEND BYTES
+    // SEND RAW BYTES
     // =========================================================
 
-    public async Task SendAsync(byte[] data)
+    public async Task SendAsync(
+        byte[] data)
     {
         if (data == null ||
             data.Length == 0)
-        {
             return;
-        }
 
-        NetworkStream? stream;
+        await _sendLock.WaitAsync();
 
-        lock (_lock)
+        try
         {
-            stream = _stream;
-        }
+            NetworkStream? stream;
 
-        if (stream == null ||
-            !IsClientConnected)
+            lock (_lock)
+            {
+                stream = _stream;
+            }
+
+            if (
+                stream == null ||
+                !IsClientConnected)
+            {
+                throw new InvalidOperationException(
+                    "TCP client is not connected.");
+            }
+
+            string hex =
+                Convert.ToHexString(data);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== TCP RAW TX ==========");
+
+            Console.WriteLine(
+                $"BYTES = {data.Length}");
+
+            Console.WriteLine(
+                $"HEX = {hex}");
+
+            Console.WriteLine(
+                $"CLIENT = {ClientEndPoint}");
+
+            Console.WriteLine(
+                "================================");
+
+            await stream.WriteAsync(
+                data.AsMemory(
+                    0,
+                    data.Length));
+
+            await stream.FlushAsync();
+
+            Console.WriteLine(
+                "TCP TX: SUCCESS");
+
+            LogReceived?.Invoke(
+                $"TX [{DateTime.Now:HH:mm:ss.fff}] {data.Length} bytes");
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                "TCP client is not connected.");
+            Console.WriteLine(
+                $"TCP TX ERROR: {ex.Message}");
+
+            LogReceived?.Invoke(
+                $"TCP TX ERROR: {ex.Message}");
+
+            throw;
         }
-
-        await stream.WriteAsync(data);
-
-        await stream.FlushAsync();
-
-        Console.WriteLine(
-            $"TCP TX [{DateTime.Now:HH:mm:ss.fff}] " +
-            $"{data.Length} bytes");
-
-        LogReceived?.Invoke(
-            $"TX [{DateTime.Now:HH:mm:ss.fff}] " +
-            $"{data.Length} bytes");
+        finally
+        {
+            _sendLock.Release();
+        }
     }
 
-
     // =========================================================
-    // SEND STRING
-    // =========================================================
-
-    public async Task SendStringAsync(
-        string text)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        byte[] data =
-            Encoding.UTF8.GetBytes(text);
-
-        await SendAsync(data);
-    }
-
-
-    // =========================================================
-    // SEND HEX
+    // HEX
     // =========================================================
 
     public async Task SendHexAsync(
         string hex)
     {
         if (string.IsNullOrWhiteSpace(hex))
-        {
             return;
-        }
 
         string cleaned =
             hex
@@ -382,24 +426,17 @@ public class DiagnosticTcpServerService : IDisposable
                 .Replace("\r", "")
                 .Replace("\n", "");
 
-        if (string.IsNullOrWhiteSpace(cleaned))
-        {
-            return;
-        }
-
         byte[] data;
 
         try
         {
             data =
-                Convert.FromHexString(cleaned);
+                Convert.FromHexString(
+                    cleaned);
         }
         catch (FormatException)
         {
             Console.WriteLine(
-                "Invalid HEX data.");
-
-            LogReceived?.Invoke(
                 "Invalid HEX data.");
 
             return;
@@ -408,17 +445,31 @@ public class DiagnosticTcpServerService : IDisposable
         await SendAsync(data);
     }
 
+    // =========================================================
+    // STRING
+    // =========================================================
+
+    public async Task SendStringAsync(
+        string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        byte[] data =
+            System.Text.Encoding.ASCII
+                .GetBytes(text);
+
+        await SendAsync(data);
+    }
 
     // =========================================================
-    // STOP SERVER
+    // STOP
     // =========================================================
 
     public void Stop()
     {
         if (!IsRunning)
-        {
             return;
-        }
 
         IsRunning = false;
 
@@ -454,21 +505,23 @@ public class DiagnosticTcpServerService : IDisposable
         }
 
         Console.WriteLine();
-        Console.WriteLine("=================================");
-        Console.WriteLine("TCP Server stopped.");
-        Console.WriteLine("=================================");
+        Console.WriteLine(
+            "=================================");
+
+        Console.WriteLine(
+            "TCP Server stopped.");
+
+        Console.WriteLine(
+            "=================================");
 
         LogReceived?.Invoke(
             "TCP Server stopped.");
     }
 
-
-    // =========================================================
-    // DISPOSE
-    // =========================================================
-
     public void Dispose()
     {
         Stop();
+
+        _sendLock.Dispose();
     }
 }

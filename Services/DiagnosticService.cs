@@ -11,24 +11,28 @@ public class DiagnosticService : IDisposable
 
     private readonly byte[] _messageEnd =
     {
-        0xE2, 0x97, 0x89 // ◉
+        0xE2,
+        0x97,
+        0x89
     };
 
-    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    public event Action<string>? RawDataReceived;
+
+    public event Action<string>? MessageReceived;
+
+    public event Action<string[]>? DiagnosticDataReceived;
 
     public bool IsRunning { get; private set; }
-
-    public event Action<string>? RawDataReceived;
-    public event Action<string>? MessageReceived;
-    public event Action<string[]>? DiagnosticDataReceived;
 
     public DiagnosticService(
         DiagnosticTcpServerService tcpServer)
     {
         _tcpServer = tcpServer;
 
-        _tcpServer.DataReceived += OnTcpDataReceived;
+        _tcpServer.DataReceived +=
+            OnTcpDataReceived;
     }
+
 
     // =========================================================
     // TCP RECEIVE
@@ -42,34 +46,54 @@ public class DiagnosticService : IDisposable
         if (data == null || data.Length == 0)
             return;
 
+        ProcessReceivedBytes(data);
+    }
+
+
+    private void ProcessReceivedBytes(byte[] bytes)
+    {
         try
         {
-            ProcessReceivedBytes(data);
+            string hex =
+                Convert.ToHexString(bytes);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "========== DIAGNOSTIC RAW RX ==========");
+
+            Console.WriteLine(
+                $"BYTES = {bytes.Length}");
+
+            Console.WriteLine(
+                $"HEX = {hex}");
+
+            Console.WriteLine(
+                "========================================");
+
+            RawDataReceived?.Invoke(hex);
+
+            _receiveBuffer.AddRange(bytes);
+
+            ProcessReceiveBuffer();
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Diagnostic TCP processing ERROR: {ex}");
+                $"Diagnostic receive processing error: {ex}");
         }
     }
 
-    private void ProcessReceivedBytes(byte[] bytes)
-    {
-        string hex =
-            Convert.ToHexString(bytes);
 
-        RawDataReceived?.Invoke(hex);
-
-        _receiveBuffer.AddRange(bytes);
-
-        ProcessReceiveBuffer();
-    }
+    // =========================================================
+    // MESSAGE BUFFER
+    // =========================================================
 
     private void ProcessReceiveBuffer()
     {
         while (true)
         {
-            int endIndex = FindMessageEnd();
+            int endIndex =
+                FindMessageEnd();
 
             if (endIndex < 0)
                 return;
@@ -87,7 +111,8 @@ public class DiagnosticService : IDisposable
                 messageLength);
 
             string message =
-                Encoding.UTF8.GetString(messageBytes);
+                Encoding.UTF8.GetString(
+                    messageBytes);
 
             Console.WriteLine();
             Console.WriteLine(
@@ -103,6 +128,7 @@ public class DiagnosticService : IDisposable
             ProcessMessage(message);
         }
     }
+
 
     private int FindMessageEnd()
     {
@@ -126,11 +152,13 @@ public class DiagnosticService : IDisposable
         return -1;
     }
 
+
     // =========================================================
-    // PARSE
+    // MESSAGE PARSER
     // =========================================================
 
-    private void ProcessMessage(string message)
+    private void ProcessMessage(
+        string message)
     {
         string[] parts =
             ParseMessage(message);
@@ -141,24 +169,21 @@ public class DiagnosticService : IDisposable
         if (parts.Length == 0)
             return;
 
-        if (!string.Equals(
-                parts[0].Trim(),
-                "Type",
-                StringComparison.OrdinalIgnoreCase))
+        if (parts.Length > 1)
         {
             Console.WriteLine(
-                $"Ignoring non-Type message. First field = [{parts[0]}]");
-
-            return;
+                $"Diagnostic TYPE = [{parts[1]}]");
         }
 
-        Console.WriteLine(
-            $"Diagnostic TYPE = [{(parts.Length > 1 ? parts[1] : "")}]");
-
-        DiagnosticDataReceived?.Invoke(parts);
+        if (parts[0] == "Type")
+        {
+            DiagnosticDataReceived?.Invoke(parts);
+        }
     }
 
-    private string[] ParseMessage(string message)
+
+    private string[] ParseMessage(
+        string message)
     {
         List<string> result = new();
 
@@ -179,66 +204,148 @@ public class DiagnosticService : IDisposable
         return result.ToArray();
     }
 
+
     // =========================================================
-    // SEND
+    // TCP SEND - IMPORTANT
     // =========================================================
 
-    public async Task SendAsync(string command)
+    public async Task SendAsync(
+        string command)
     {
         if (string.IsNullOrEmpty(command))
             return;
 
         if (!_tcpServer.IsClientConnected)
+        {
             throw new InvalidOperationException(
                 "TCP client is not connected.");
+        }
 
+
+        // =====================================================
         // IMPORTANT:
-        // The diagnostic device expects commands terminated by LF.
-        //string commandWithNewLine = command + "\n";
+        //
+        // Diagnostic device expects:
+        //
+        // 0   -> 30 0A
+        // 1   -> 31 0A
+        // 13  -> 31 33 0A
+        // -1  -> 2D 31 0A
+        //
+        // =====================================================
 
-        //byte[] data = Encoding.UTF8.GetBytes(commandWithNewLine);
+        string commandWithLf =
+            command + "\n";
 
-        byte[] data = Encoding.UTF8.GetBytes(command);
+        byte[] data =
+            Encoding.UTF8.GetBytes(
+                commandWithLf);
+
 
         Console.WriteLine();
-        Console.WriteLine("=================================");
-        Console.WriteLine("DIAGNOSTIC COMMAND");
-        Console.WriteLine($"COMMAND = [{command}]");
-        //Console.WriteLine($"COMMAND WITH LF = [{commandWithNewLine}]");
-        Console.WriteLine($"HEX = {Convert.ToHexString(data)}");
-        Console.WriteLine("=================================");
+        Console.WriteLine(
+            "=================================");
+
+        Console.WriteLine(
+            "DIAGNOSTIC COMMAND");
+
+        Console.WriteLine(
+            $"COMMAND = [{command}]");
+
+        Console.WriteLine(
+            $"COMMAND WITH LF = [{commandWithLf}]");
+
+        Console.WriteLine(
+            $"HEX = {Convert.ToHexString(data)}");
+
+        Console.WriteLine(
+            $"BYTES = {data.Length}");
+
+        Console.WriteLine(
+            "=================================");
+
 
         await _tcpServer.SendAsync(data);
 
-        Console.WriteLine("DIAGNOSTIC COMMAND SENT SUCCESSFULLY");
+
+        Console.WriteLine(
+            "DIAGNOSTIC COMMAND SENT SUCCESSFULLY");
     }
 
-
-    public Task Send(string command)
-    {
-        return SendAsync(command);
-    }
 
     // =========================================================
-    // LIFECYCLE
+    // SEND STRING
+    // =========================================================
+
+    public async Task SendStringAsync(
+        string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        await SendAsync(text);
+    }
+
+
+    // =========================================================
+    // SEND RAW HEX
+    // =========================================================
+
+    public async Task SendHexAsync(
+        string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex))
+            return;
+
+        string cleaned =
+            hex
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("\r", "")
+                .Replace("\n", "");
+
+        if (string.IsNullOrWhiteSpace(cleaned))
+            return;
+
+        byte[] data;
+
+        try
+        {
+            data =
+                Convert.FromHexString(
+                    cleaned);
+        }
+        catch (FormatException)
+        {
+            Console.WriteLine(
+                "Invalid HEX data.");
+
+            return;
+        }
+
+        await _tcpServer.SendAsync(data);
+    }
+
+
+    // =========================================================
+    // START
     // =========================================================
 
     public void Start()
     {
-        if (IsRunning)
-            return;
-
         IsRunning = true;
 
         Console.WriteLine(
             "DiagnosticService started.");
     }
 
+
+    // =========================================================
+    // STOP
+    // =========================================================
+
     public void Stop()
     {
-        if (!IsRunning)
-            return;
-
         IsRunning = false;
 
         _receiveBuffer.Clear();
@@ -247,13 +354,16 @@ public class DiagnosticService : IDisposable
             "DiagnosticService stopped.");
     }
 
+
+    // =========================================================
+    // DISPOSE
+    // =========================================================
+
     public void Dispose()
     {
         _tcpServer.DataReceived -=
             OnTcpDataReceived;
 
-        _sendLock.Dispose();
-
-        _receiveBuffer.Clear();
+        Stop();
     }
 }
