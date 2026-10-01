@@ -916,6 +916,11 @@ public class DiagnosticMenuService
     /* PARAMETER REFRESH */
     /* ========================================================= */
 
+    /* ========================================================= */
+    /* TYPE 20.2 */
+    /* PARAMETER REFRESH */
+    /* ========================================================= */
+
     private void RefreshParameters(
         string[] value)
     {
@@ -925,56 +930,102 @@ public class DiagnosticMenuService
             return;
         }
 
-
         /*
-         * Keep the current parameter structure
-         * and update available values.
+         * Actual Type 20.2 protocol:
+         *
+         * Type
+         * 20.2
+         * Count
+         * 8
+         * 0
+         * On
+         * 1
+         * On
+         * 2
+         * On
+         * ...
+         * 7
+         * 9830.25
+         *
+         * So after Count there are
+         * index/value pairs.
          */
 
-        for (int i = 0;
-             i < value.Length;
-             i++)
+        int count = 0;
+
+        if (value.Length > 3 &&
+            value[2]?.Trim() == "Count")
         {
-            string field =
-                value[i]?.Trim() ?? "";
-
-
-            if (field.StartsWith("R",
-                StringComparison.OrdinalIgnoreCase))
-            {
-                int index =
-                    ParseInt(
-                        field.Length > 1
-                            ? field[1..]
-                            : "-1");
-
-
-                if (index < 0 ||
-                    index >= State.Parameters.Count)
-                {
-                    continue;
-                }
-
-
-                if (i + 2 < value.Length)
-                {
-                    string newValue =
-                        value[i + 2]?.Trim() ?? "";
-
-
-                    State.Parameters[index].CurrentValue =
-                        newValue;
-
-                    State.Parameters[index].Value =
-                        newValue;
-
-                    State.Parameters[index].IsActive =
-                        !string.IsNullOrWhiteSpace(
-                            newValue);
-                }
-            }
+            count = ParseInt(value[3]);
         }
 
+        Console.WriteLine();
+        Console.WriteLine("========== PARAMETER REFRESH ==========");
+        Console.WriteLine($"Count = {count}");
+        Console.WriteLine($"Fields = {value.Length}");
+        Console.WriteLine("=======================================");
+
+        int counter = 4;
+
+        for (int i = 0;
+             i < count;
+             i++)
+        {
+            /*
+             * Need:
+             *
+             * counter     -> parameter index
+             * counter + 1 -> parameter value
+             */
+
+            if (counter + 1 >= value.Length)
+                break;
+
+            string indexText =
+                value[counter]?.Trim() ?? "";
+
+            string newValue =
+                value[counter + 1]?.Trim() ?? "";
+
+            int index =
+                ParseInt(indexText);
+
+            Console.WriteLine(
+                $"PARAMETER -> " +
+                $"Index=[{index}], " +
+                $"Value=[{newValue}]");
+
+            if (index >= 0 &&
+                index < State.Parameters.Count)
+            {
+                State.Parameters[index].CurrentValue =
+                    newValue;
+
+                State.Parameters[index].Value =
+                    newValue;
+
+                State.Parameters[index].IsActive =
+                    !string.IsNullOrWhiteSpace(newValue);
+            }
+
+            /*
+             * Move to next index/value pair.
+             */
+            counter += 2;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("========== PARAMETER STATE ==========");
+
+        foreach (var parameter in State.Parameters)
+        {
+            Console.WriteLine(
+                $"Index={parameter.Index}, " +
+                $"Name=[{parameter.Name}], " +
+                $"Value=[{parameter.CurrentValue}]");
+        }
+
+        Console.WriteLine("====================================");
 
         Notify();
     }
