@@ -16,9 +16,22 @@ public enum MenuScreen
 }
 
 
+//public class MenuItem
+//{
+//    public int Index { get; set; }
+
+//    public string Text { get; set; } = "";
+
+//    public bool Checked { get; set; }
+
+//    public bool Selected { get; set; }
+//}
+
 public class MenuItem
 {
     public int Index { get; set; }
+
+    public string Command { get; set; } = "";
 
     public string Text { get; set; } = "";
 
@@ -26,8 +39,6 @@ public class MenuItem
 
     public bool Selected { get; set; }
 }
-
-
 public class MemoRecord
 {
     public string Title { get; set; } = "";
@@ -299,29 +310,138 @@ public class DiagnosticMenuService
     /* TYPE 4 / TYPE 6 */
     /* ========================================================= */
 
-    private void ShowBoxPage(
-        string[] value)
-    {
-        State.Screen =
-            MenuScreen.BoxPage;
+    //private void ShowBoxPage(
+    //    string[] value)
+    //{
+    //    State.Screen =
+    //        MenuScreen.BoxPage;
 
-        State.Header =
-            GetHeader(value);
+    //    State.Header =
+    //        GetHeader(value);
+
+    //    State.Items.Clear();
+
+    //    State.Parameters.Clear();
+
+    //    State.Sensors.Clear();
+
+    //    State.SensorActions.Clear();
+
+    //    State.MemoRecords.Clear();
+
+    //    State.Message = "";
+
+    //    State.Keyboard.Visible = false;
+
+
+    //    if (value.Length < 9)
+    //    {
+    //        Notify();
+    //        return;
+    //    }
+
+
+    //    int count =
+    //        ParseInt(value[6]);
+
+    //    int selectedIndex =
+    //        ParseInt(value[8]);
+
+    //    State.SelectedIndex =
+    //        selectedIndex;
+
+
+    //    int counter = 9;
+
+
+    //    for (int i = 0;
+    //         i < count;
+    //         i++)
+    //    {
+    //        if (counter >= value.Length)
+    //            break;
+
+
+    //        string text = "";
+
+
+    //        /*
+    //         * Protocol structure:
+    //         *
+    //         * R0
+    //         * empty
+    //         * text
+    //         */
+
+    //        if (counter + 2 < value.Length)
+    //        {
+    //            text =
+    //                value[counter + 2]?.Trim() ?? "";
+    //        }
+
+
+    //        /*
+    //         * Fallback in case the
+    //         * text is stored directly.
+    //         */
+
+    //        if (string.IsNullOrWhiteSpace(text) &&
+    //            counter + 1 < value.Length)
+    //        {
+    //            text =
+    //                value[counter + 1]?.Trim() ?? "";
+    //        }
+
+
+    //        State.Items.Add(
+    //            new MenuItem
+    //            {
+    //                Index = i,
+    //                Text = text,
+    //                Selected =
+    //                    i == selectedIndex
+    //            });
+
+
+    //        counter += 3;
+    //    }
+
+
+    //    Console.WriteLine();
+    //    Console.WriteLine(
+    //        "MENU UI UPDATE");
+
+    //    Console.WriteLine(
+    //        $"Screen = {State.Screen}");
+
+    //    Console.WriteLine(
+    //        $"Header = [{State.Header}]");
+
+    //    Console.WriteLine(
+    //        $"SelectedIndex = {State.SelectedIndex}");
+
+    //    Console.WriteLine(
+    //        $"Items = {State.Items.Count}");
+
+
+    //    Notify();
+    //}
+
+
+    private void ShowBoxPage(string[] value)
+    {
+        State.Screen = MenuScreen.BoxPage;
+
+        State.Header = GetHeader(value);
 
         State.Items.Clear();
-
         State.Parameters.Clear();
-
         State.Sensors.Clear();
-
         State.SensorActions.Clear();
-
         State.MemoRecords.Clear();
 
         State.Message = "";
-
         State.Keyboard.Visible = false;
-
 
         if (value.Length < 9)
         {
@@ -329,33 +449,31 @@ public class DiagnosticMenuService
             return;
         }
 
+        int count = ParseInt(value[6]);
 
-        int count =
-            ParseInt(value[6]);
+        int selectedIndex = ParseInt(value[8]);
 
-        int selectedIndex =
-            ParseInt(value[8]);
-
-        State.SelectedIndex =
-            selectedIndex;
-
+        State.SelectedIndex = selectedIndex;
 
         int counter = 9;
 
-
-        for (int i = 0;
-             i < count;
-             i++)
+        for (int i = 0; i < count; i++)
         {
             if (counter >= value.Length)
                 break;
 
+            string command = "";
+
+            if (counter < value.Length)
+            {
+                command =
+                    value[counter]?.Trim() ?? "";
+            }
 
             string text = "";
 
-
             /*
-             * Protocol structure:
+             * Protocol:
              *
              * R0
              * empty
@@ -368,12 +486,6 @@ public class DiagnosticMenuService
                     value[counter + 2]?.Trim() ?? "";
             }
 
-
-            /*
-             * Fallback in case the
-             * text is stored directly.
-             */
-
             if (string.IsNullOrWhiteSpace(text) &&
                 counter + 1 < value.Length)
             {
@@ -381,24 +493,30 @@ public class DiagnosticMenuService
                     value[counter + 1]?.Trim() ?? "";
             }
 
-
             State.Items.Add(
                 new MenuItem
                 {
                     Index = i,
+
+                    Command = command,
+
                     Text = text,
+
                     Selected =
                         i == selectedIndex
                 });
 
+            Console.WriteLine(
+                $"MENU ITEM -> " +
+                $"Index=[{i}], " +
+                $"Command=[{command}], " +
+                $"Text=[{text}]");
 
             counter += 3;
         }
 
-
         Console.WriteLine();
-        Console.WriteLine(
-            "MENU UI UPDATE");
+        Console.WriteLine("MENU UI UPDATE");
 
         Console.WriteLine(
             $"Screen = {State.Screen}");
@@ -411,7 +529,6 @@ public class DiagnosticMenuService
 
         Console.WriteLine(
             $"Items = {State.Items.Count}");
-
 
         Notify();
     }

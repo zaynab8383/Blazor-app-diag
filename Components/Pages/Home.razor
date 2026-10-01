@@ -239,7 +239,7 @@
             {
                 <button type="button"
                         class="diagnostic-button"
-                        @onclick="() => SelectMenuItem(item.Index)">
+                        @onclick="() => SelectMenuItem(item)">
 
                     @item.Text
 
@@ -1178,18 +1178,62 @@
     /* MENU COMMANDS */
     /* ========================================================= */
 
-    private async Task SelectMenuItem(int index)
+    // private async Task SelectMenuItem(int index)
+    // {
+    //     try
+    //     {
+    //         string command = index.ToString();
+
+    //         Console.WriteLine();
+    //         Console.WriteLine(
+    //             "========== UI MENU COMMAND ==========");
+
+    //         Console.WriteLine(
+    //             $"COMMAND = [{command}]");
+
+    //         await DiagnosticService.SendAsync(command);
+
+    //         Console.WriteLine(
+    //             $"UI -> MENU COMMAND SENT: [{command}]");
+
+    //         Console.WriteLine(
+    //             "=====================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"SelectMenuItem ERROR: {ex}");
+    //     }
+    // }
+
+
+    private async Task SelectMenuItem(MenuItem item)
     {
         try
         {
-            string command = index.ToString();
+            string command = item.Command;
+
+            /*
+             * If for some reason the command
+             * is empty, fall back to Index.
+             */
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                command = item.Index.ToString();
+            }
 
             Console.WriteLine();
             Console.WriteLine(
                 "========== UI MENU COMMAND ==========");
 
             Console.WriteLine(
+                $"INDEX = [{item.Index}]");
+
+            Console.WriteLine(
                 $"COMMAND = [{command}]");
+
+            Console.WriteLine(
+                $"TEXT = [{item.Text}]");
 
             await DiagnosticService.SendAsync(command);
 
@@ -1205,6 +1249,7 @@
                 $"SelectMenuItem ERROR: {ex}");
         }
     }
+
 
 
     /* ========================================================= */
