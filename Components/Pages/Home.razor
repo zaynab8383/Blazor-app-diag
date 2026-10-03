@@ -339,6 +339,7 @@
     <!-- ========================================================= -->
     <!-- SELECT PAGE -->
     <!-- ========================================================= -->
+
     @if (MenuService.State.Screen == MenuScreen.SelectPage)
     {
         <div class="diagnostic-panel">
@@ -354,8 +355,8 @@
                     <input type="checkbox"
                            checked="@item.Checked"
                            @onchange="e => SetCheckBox(
-                                                   item.Index,
-                                                   e.Value is bool checkedValue && checkedValue)" />
+                                               item.Index,
+                                               e.Value is bool checkedValue && checkedValue)" />
 
 <span>
                         @item.Text
@@ -364,76 +365,16 @@
                 </div>
             }
 
+            <button type="button"
+                    class="diagnostic-button"
+                    @onclick="ConfirmParameterSelection">
+
+                OK
+
+            </button>
+
         </div>
     }
-
-
-    <!-- ========================================================= -->
-    <!-- PARAMETERS -->
-    <!-- ========================================================= -->
-    @* @if (MenuService.State.Screen == MenuScreen.Parameters)
-    {
-        <div class="parameters-page">
-
-            <div class="parameters-header">
-                @MenuService.State.Header
-            </div>
-
-            <div class="parameters-table-wrapper">
-
-                <table class="parameters-table">
-
-                    <thead>
-
-                        <tr>
-                            <th>#</th>
-                            <th>Parameter</th>
-                            <th>Description</th>
-                            <th>Unit</th>
-                            <th>Value</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        @foreach (var parameter in MenuService.State.Parameters)
-                        {
-                            <tr class="@(parameter.IsActive
-                                                                ? "parameter-active"
-                                                                : "parameter-inactive")">
-
-                                <td>
-                                    @parameter.Index
-                                </td>
-
-                                <td>
-                                    @parameter.Col0
-                                </td>
-
-                                <td>
-                                    @parameter.Col1
-                                </td>
-
-                                <td>
-                                    @parameter.Col2
-                                </td>
-
-                                <td class="parameter-value">
-                                    @parameter.CurrentValue
-                                </td>
-
-                            </tr>
-                        }
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-    } *@
 
 
 
@@ -1300,16 +1241,9 @@
     {
         try
         {
-            string command = item.Command;
-
-            /*
-             * If for some reason the command
-             * is empty, fall back to Index.
-             */
-            if (string.IsNullOrWhiteSpace(command))
-            {
-                command = item.Index.ToString();
-            }
+            // Original diagnostic behavior:
+            // menu button sends its index / TabIndex.
+            string command = item.Index.ToString();
 
             Console.WriteLine();
             Console.WriteLine(
@@ -1338,8 +1272,6 @@
                 $"SelectMenuItem ERROR: {ex}");
         }
     }
-
-
 
 
     private async Task ParameterUp()
@@ -1417,6 +1349,34 @@
         {
             Console.WriteLine(
                 $"SelectSensorItem ERROR: {ex}");
+        }
+    }
+
+
+
+    private async Task ConfirmParameterSelection()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "===== PARAMETER SELECTION CONFIRM =====");
+
+            Console.WriteLine(
+                "COMMAND = [-2]");
+
+            await DiagnosticService.SendAsync("-2");
+
+            Console.WriteLine(
+                "PARAMETER SELECTION CONFIRMED");
+
+            Console.WriteLine(
+                "========================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ConfirmParameterSelection ERROR: {ex}");
         }
     }
 
