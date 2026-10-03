@@ -903,35 +903,125 @@ public class DiagnosticMenuService
     /* PARAMETER REFRESH */
     /* ========================================================= */
 
-    private void RefreshParameters(
-        string[] value)
+    //private void RefreshParameters(
+    //    string[] value)
+    //{
+    //    if (State.Parameters.Count == 0)
+    //    {
+    //        Notify();
+    //        return;
+    //    }
+
+    //    /*
+    //     * Actual Type 20.2 protocol:
+    //     *
+    //     * Type
+    //     * 20.2
+    //     * Count
+    //     * 8
+    //     * 0
+    //     * On
+    //     * 1
+    //     * On
+    //     * 2
+    //     * On
+    //     * ...
+    //     * 7
+    //     * 9830.25
+    //     *
+    //     * So after Count there are
+    //     * index/value pairs.
+    //     */
+
+    //    int count = 0;
+
+    //    if (value.Length > 3 &&
+    //        value[2]?.Trim() == "Count")
+    //    {
+    //        count = ParseInt(value[3]);
+    //    }
+
+    //    Console.WriteLine();
+    //    Console.WriteLine("========== PARAMETER REFRESH ==========");
+    //    Console.WriteLine($"Count = {count}");
+    //    Console.WriteLine($"Fields = {value.Length}");
+    //    Console.WriteLine("=======================================");
+
+    //    int counter = 4;
+
+    //    for (int i = 0;
+    //         i < count;
+    //         i++)
+    //    {
+    //        /*
+    //         * Need:
+    //         *
+    //         * counter     -> parameter index
+    //         * counter + 1 -> parameter value
+    //         */
+
+    //        if (counter + 1 >= value.Length)
+    //            break;
+
+    //        string indexText =
+    //            value[counter]?.Trim() ?? "";
+
+    //        string newValue =
+    //            value[counter + 1]?.Trim() ?? "";
+
+    //        int index =
+    //            ParseInt(indexText);
+
+    //        Console.WriteLine(
+    //            $"PARAMETER -> " +
+    //            $"Index=[{index}], " +
+    //            $"Value=[{newValue}]");
+
+    //        if (index >= 0 &&
+    //            index < State.Parameters.Count)
+    //        {
+    //            State.Parameters[index].CurrentValue =
+    //                newValue;
+
+    //            State.Parameters[index].Value =
+    //                newValue;
+
+    //            State.Parameters[index].IsActive =
+    //                !string.IsNullOrWhiteSpace(newValue);
+    //        }
+
+    //        /*
+    //         * Move to next index/value pair.
+    //         */
+    //        counter += 2;
+    //    }
+
+    //    Console.WriteLine();
+    //    Console.WriteLine("========== PARAMETER STATE ==========");
+
+    //    foreach (var parameter in State.Parameters)
+    //    {
+    //        Console.WriteLine(
+    //            $"Index={parameter.Index}, " +
+    //            $"Name=[{parameter.Name}], " +
+    //            $"Value=[{parameter.CurrentValue}]");
+    //    }
+
+    //    Console.WriteLine("====================================");
+
+    //    Notify();
+    //}
+
+
+
+
+    private void RefreshParameters(string[] value)
     {
         if (State.Parameters.Count == 0)
         {
             Notify();
             return;
         }
-
-        /*
-         * Actual Type 20.2 protocol:
-         *
-         * Type
-         * 20.2
-         * Count
-         * 8
-         * 0
-         * On
-         * 1
-         * On
-         * 2
-         * On
-         * ...
-         * 7
-         * 9830.25
-         *
-         * So after Count there are
-         * index/value pairs.
-         */
 
         int count = 0;
 
@@ -942,24 +1032,47 @@ public class DiagnosticMenuService
         }
 
         Console.WriteLine();
-        Console.WriteLine("========== PARAMETER REFRESH ==========");
+        Console.WriteLine("========== PARAMETER PAGE REFRESH ==========");
         Console.WriteLine($"Count = {count}");
         Console.WriteLine($"Fields = {value.Length}");
-        Console.WriteLine("=======================================");
+        Console.WriteLine("============================================");
+
+        /*
+         * مهم:
+         *
+         * قبل از اعمال صفحه جدید،
+         * مقدار تمام ردیف‌ها را پاک می‌کنیم.
+         *
+         * این دقیقاً رفتار برنامه WinForms اصلی است.
+         */
+        for (int i = 0; i < State.Parameters.Count; i++)
+        {
+            State.Parameters[i].CurrentValue = "^^^^";
+            State.Parameters[i].Value = "^^^^";
+            State.Parameters[i].IsActive = false;
+        }
+
+        /*
+         * حالا فقط ردیف‌هایی که در پاسخ
+         * 20.2 آمده‌اند مقدار می‌گیرند.
+         *
+         * Protocol:
+         *
+         * Type
+         * 20.2
+         * Count
+         * 8
+         * 0
+         * value
+         * 1
+         * value
+         * ...
+         */
 
         int counter = 4;
 
-        for (int i = 0;
-             i < count;
-             i++)
+        for (int i = 0; i < count; i++)
         {
-            /*
-             * Need:
-             *
-             * counter     -> parameter index
-             * counter + 1 -> parameter value
-             */
-
             if (counter + 1 >= value.Length)
                 break;
 
@@ -973,7 +1086,7 @@ public class DiagnosticMenuService
                 ParseInt(indexText);
 
             Console.WriteLine(
-                $"PARAMETER -> " +
+                $"PARAMETER PAGE -> " +
                 $"Index=[{index}], " +
                 $"Value=[{newValue}]");
 
@@ -987,30 +1100,29 @@ public class DiagnosticMenuService
                     newValue;
 
                 State.Parameters[index].IsActive =
-                    !string.IsNullOrWhiteSpace(newValue);
+                    true;
             }
 
-            /*
-             * Move to next index/value pair.
-             */
             counter += 2;
         }
 
         Console.WriteLine();
-        Console.WriteLine("========== PARAMETER STATE ==========");
+        Console.WriteLine("========== CURRENT PARAMETER PAGE ==========");
 
         foreach (var parameter in State.Parameters)
         {
             Console.WriteLine(
                 $"Index={parameter.Index}, " +
-                $"Name=[{parameter.Name}], " +
-                $"Value=[{parameter.CurrentValue}]");
+                $"Value=[{parameter.CurrentValue}], " +
+                $"Active={parameter.IsActive}");
         }
 
-        Console.WriteLine("====================================");
+        Console.WriteLine("============================================");
 
         Notify();
     }
+
+
 
 
     /* ========================================================= */
