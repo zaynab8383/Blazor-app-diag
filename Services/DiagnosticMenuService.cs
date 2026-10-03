@@ -74,6 +74,8 @@ public class KeyboardState
 
 public class MenuState
 {
+    public int SoftwarePage { get; set; } = 0;
+    public const int SoftwarePageSize = 10;
     public MenuScreen Screen { get; set; } =
         MenuScreen.None;
 
@@ -210,6 +212,10 @@ public class DiagnosticMenuService
 
                     break;
 
+
+                case "17":
+                    ShowSoftwareList(value);
+                    break;
 
                 /*
                  * Parameters
@@ -498,90 +504,175 @@ public class DiagnosticMenuService
     /* SOFTWARE LIST */
     /* ========================================================= */
 
-    private void ShowSoftwareList(
-        string[] value)
-    {
-        State.Screen =
-            MenuScreen.SoftwareList;
+    //private void ShowSoftwareList(
+    //    string[] value)
+    //{
+    //    State.Screen =
+    //        MenuScreen.SoftwareList;
 
-        State.Header =
-            GetHeader(value);
+    //    State.Header =
+    //        GetHeader(value);
 
-        State.Items.Clear();
+    //    State.Items.Clear();
 
-        State.Parameters.Clear();
+    //    State.Parameters.Clear();
 
-        State.Sensors.Clear();
+    //    State.Sensors.Clear();
 
-        State.SensorActions.Clear();
+    //    State.SensorActions.Clear();
 
-        State.MemoRecords.Clear();
+    //    State.MemoRecords.Clear();
 
-        State.Message = "";
+    //    State.Message = "";
 
-        State.Keyboard.Visible = false;
-
-
-        /*
-         * Software-list messages can vary slightly
-         * in their field structure.
-         *
-         * We keep all meaningful R-fields.
-         */
-
-        int index = 0;
+    //    State.Keyboard.Visible = false;
 
 
-        for (int i = 0;
-             i < value.Length;
-             i++)
-        {
-            string field =
-                value[i]?.Trim() ?? "";
+    //    /*
+    //     * Software-list messages can vary slightly
+    //     * in their field structure.
+    //     *
+    //     * We keep all meaningful R-fields.
+    //     */
+
+    //    int index = 0;
 
 
-            if (field.StartsWith("R",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                string text = "";
+    //    for (int i = 0;
+    //         i < value.Length;
+    //         i++)
+    //    {
+    //        string field =
+    //            value[i]?.Trim() ?? "";
 
 
-                if (i + 2 < value.Length)
-                {
-                    text =
-                        value[i + 2]?.Trim() ?? "";
-                }
+    //        if (field.StartsWith("R",
+    //                StringComparison.OrdinalIgnoreCase))
+    //        {
+    //            string text = "";
 
 
-                if (string.IsNullOrWhiteSpace(text) &&
-                    i + 1 < value.Length)
-                {
-                    text =
-                        value[i + 1]?.Trim() ?? "";
-                }
+    //            if (i + 2 < value.Length)
+    //            {
+    //                text =
+    //                    value[i + 2]?.Trim() ?? "";
+    //            }
 
 
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    State.Items.Add(
-                        new MenuItem
-                        {
-                            Index = index++,
-                            Text = text
-                        });
-                }
-            }
-        }
+    //            if (string.IsNullOrWhiteSpace(text) &&
+    //                i + 1 < value.Length)
+    //            {
+    //                text =
+    //                    value[i + 1]?.Trim() ?? "";
+    //            }
 
 
-        Notify();
-    }
+    //            if (!string.IsNullOrWhiteSpace(text))
+    //            {
+    //                State.Items.Add(
+    //                    new MenuItem
+    //                    {
+    //                        Index = index++,
+    //                        Text = text
+    //                    });
+    //            }
+    //        }
+    //    }
 
 
-    /* ========================================================= */
-    /* TYPE 0 / TYPE 18 */
-    /* MEMO */
-    /* ========================================================= */
+    //    Notify();
+    //}
+
+
+
+
+    //private void ShowSoftwareList(string[] value)
+    //{
+    //    State.Screen = MenuScreen.SoftwareList;
+    //    State.Header = "File Explorer";
+
+    //    State.Items.Clear();
+    //    State.Parameters.Clear();
+    //    State.Sensors.Clear();
+    //    State.SensorActions.Clear();
+    //    State.MemoRecords.Clear();
+    //    State.Message = "";
+    //    State.Keyboard.Visible = false;
+
+    //    int selectedIndex = -1;
+
+    //    // Find Selected_Index
+    //    for (int i = 0; i < value.Length - 1; i++)
+    //    {
+    //        if (value[i]?.Trim() == "Selected_Index")
+    //        {
+    //            selectedIndex = ParseInt(value[i + 1]);
+    //            break;
+    //        }
+    //    }
+
+    //    State.SelectedIndex = selectedIndex;
+
+    //    // Parse R0, R1, R2, ...
+    //    for (int i = 0; i < value.Length; i++)
+    //    {
+    //        string field = value[i]?.Trim() ?? "";
+
+    //        if (!field.StartsWith("R"))
+    //            continue;
+
+    //        if (!int.TryParse(field.Substring(1), out int index))
+    //            continue;
+
+    //        // Expected:
+    //        // R0
+    //        // Folder
+    //        // SSAT-IKO(NoFlash)
+
+    //        if (i + 2 >= value.Length)
+    //            continue;
+
+    //        string type = value[i + 1]?.Trim() ?? "";
+    //        string text = value[i + 2]?.Trim() ?? "";
+
+    //        if (string.IsNullOrWhiteSpace(text))
+    //            continue;
+
+    //        State.Items.Add(new MenuItem
+    //        {
+    //            Index = index,
+    //            Command = index.ToString(),
+    //            Text = text,
+    //            Selected = index == selectedIndex
+    //        });
+
+    //        Console.WriteLine(
+    //            $"FILE ITEM -> Index=[{index}], Type=[{type}], Text=[{text}]");
+    //    }
+
+    //    Console.WriteLine();
+    //    Console.WriteLine("========== FILE EXPLORER ==========");
+    //    Console.WriteLine($"Header = [{State.Header}]");
+    //    Console.WriteLine($"SelectedIndex = {State.SelectedIndex}");
+    //    Console.WriteLine($"Items = {State.Items.Count}");
+
+    //    foreach (var item in State.Items)
+    //    {
+    //        Console.WriteLine(
+    //            $"[{item.Index}] {item.Text}");
+    //    }
+
+    //    Console.WriteLine("===================================");
+
+    //    Notify();
+    //}
+
+
+
+    ///* ========================================================= */
+    ///* TYPE 0 / TYPE 18 */
+    ///* MEMO */
+    ///* ========================================================= */
 
     private void ShowMemo(
         string[] value)
@@ -687,6 +778,149 @@ public class DiagnosticMenuService
         Notify();
     }
 
+
+
+
+
+    private void ShowSoftwareList(string[] value)
+    {
+        State.Screen = MenuScreen.SoftwareList;
+        State.Header = "File Explorer";
+
+        State.Items.Clear();
+        State.Parameters.Clear();
+        State.Sensors.Clear();
+        State.SensorActions.Clear();
+        State.MemoRecords.Clear();
+        State.Message = "";
+        State.Keyboard.Visible = false;
+
+        int selectedIndex = -1;
+
+        // -------------------------------
+        // Selected_Index
+        // -------------------------------
+        for (int i = 0; i < value.Length - 1; i++)
+        {
+            if (value[i]?.Trim() == "Selected_Index")
+            {
+                selectedIndex = ParseInt(value[i + 1]);
+                break;
+            }
+        }
+
+        State.SelectedIndex = selectedIndex;
+
+        // -------------------------------
+        // Parse all R0, R1, R2, ...
+        // -------------------------------
+        for (int i = 0; i < value.Length; i++)
+        {
+            string field = value[i]?.Trim() ?? "";
+
+            if (!field.StartsWith("R"))
+                continue;
+
+            if (!int.TryParse(field.Substring(1), out int index))
+                continue;
+
+            // Expected:
+            //
+            // R0
+            // File
+            // filename.bin
+
+            if (i + 2 >= value.Length)
+                continue;
+
+            string type = value[i + 1]?.Trim() ?? "";
+            string text = value[i + 2]?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            State.Items.Add(new MenuItem
+            {
+                Index = index,
+                Command = index.ToString(),
+                Text = text,
+                Selected = index == selectedIndex
+            });
+
+            Console.WriteLine(
+                $"FILE ITEM -> Index=[{index}], Type=[{type}], Text=[{text}]");
+        }
+
+        // -------------------------------
+        // Start from first page
+        // -------------------------------
+        State.SoftwarePage = 0;
+
+        Console.WriteLine();
+        Console.WriteLine("========== FILE EXPLORER ==========");
+        Console.WriteLine($"Header = [{State.Header}]");
+        Console.WriteLine($"SelectedIndex = {State.SelectedIndex}");
+        Console.WriteLine($"Total Items = {State.Items.Count}");
+        Console.WriteLine($"Page = {State.SoftwarePage + 1}");
+        Console.WriteLine(
+            $"Total Pages = {GetSoftwarePageCount()}");
+        Console.WriteLine("===================================");
+
+        Notify();
+    }
+
+
+
+    public int GetSoftwarePageCount()
+    {
+        if (State.Items.Count == 0)
+            return 0;
+
+        return (int)Math.Ceiling(
+            State.Items.Count / (double)MenuState.SoftwarePageSize);
+    }
+
+    public void SoftwarePageUp()
+    {
+        if (State.SoftwarePage > 0)
+        {
+            State.SoftwarePage--;
+
+            Console.WriteLine();
+            Console.WriteLine("========== FILE PAGE UP ==========");
+            Console.WriteLine($"Page = {State.SoftwarePage + 1}");
+            Console.WriteLine($"Total Pages = {GetSoftwarePageCount()}");
+            Console.WriteLine("==================================");
+
+            Notify();
+        }
+    }
+
+
+    public void SoftwarePageDown()
+    {
+        int pageCount = GetSoftwarePageCount();
+
+        if (pageCount == 0)
+            return;
+
+        if (State.SoftwarePage < pageCount - 1)
+        {
+            State.SoftwarePage++;
+            Notify();
+        }
+    }
+
+
+    public IEnumerable<MenuItem> GetCurrentSoftwarePageItems()
+    {
+        int start =
+            State.SoftwarePage * MenuState.SoftwarePageSize;
+
+        return State.Items
+            .Skip(start)
+            .Take(MenuState.SoftwarePageSize);
+    }
 
     /* ========================================================= */
     /* TYPE 10 */

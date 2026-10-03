@@ -253,7 +253,7 @@
     <!-- ========================================================= -->
     <!-- SOFTWARE LIST -->
     <!-- ========================================================= -->
-    @if (MenuService.State.Screen == MenuScreen.SoftwareList)
+    @* @if (MenuService.State.Screen == MenuScreen.SoftwareList)
     {
         <div class="software-page">
 
@@ -269,6 +269,64 @@
                         @item.Text
                     </div>
                 }
+
+            </div>
+
+        </div>
+    } *@
+
+
+
+    @if (MenuService.State.Screen == MenuScreen.SoftwareList)
+    {
+        <div class="software-page">
+
+            <div class="software-header">
+                @MenuService.State.Header
+            </div>
+
+            <div class="software-content">
+
+                @foreach (var item in MenuService.GetCurrentSoftwarePageItems())
+                {
+                    <button type="button"
+                            class="software-row @(item.Selected ? "software-row-selected" : "")"
+                            @onclick="() => SelectSoftwareItem(item)">
+
+                        <span class="software-index">
+                            @item.Index
+                        </span>
+
+                        <span class="software-name">
+                            @item.Text
+                        </span>
+
+                    </button>
+                }
+
+            </div>
+
+            <div class="software-navigation">
+
+                <button type="button"
+                        class="software-nav-button"
+                        @onclick="SoftwarePageUp"
+                        disabled="@(MenuService.State.SoftwarePage == 0)">
+                    UP
+                </button>
+
+                <div class="software-page-number">
+                    Page @(MenuService.State.SoftwarePage + 1)
+                    /
+                    @MenuService.GetSoftwarePageCount()
+                </div>
+
+                <button type="button"
+                        class="software-nav-button"
+                        @onclick="SoftwarePageDown"
+                        disabled="@(MenuService.State.SoftwarePage >= MenuService.GetSoftwarePageCount() - 1)">
+                    DOWN
+                </button>
 
             </div>
 
@@ -532,11 +590,7 @@
         </div>
     }
 
-
-    <!-- ========================================================= -->
-    <!-- BACK -->
-    <!-- ========================================================= -->
-    @if (MenuService.State.Screen != MenuScreen.None)
+    @* @if (MenuService.State.Screen != MenuScreen.None)
     {
         <div class="back-container">
 
@@ -549,12 +603,121 @@
             </button>
 
         </div>
-    }
+    } *@
+
+
+    <!-- ========================================================= -->
+    <!-- BACK -->
+    <!-- ========================================================= -->
+
+    <div class="back-container"
+         style="@(MenuService.State.Screen != MenuScreen.None
+                        ? "visibility: visible;"
+                        : "visibility: hidden;")">
+
+        <button type="button"
+                class="diagnostic-button back-button"
+                @onclick="Back">
+
+            Back
+
+        </button>
+
+    </div>
+
+
+
 
 </div>
 
 
 <style>
+
+
+    .software-page {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .software-header {
+        font-size: 22px;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+
+    .software-content {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .software-row {
+        width: 100%;
+        min-height: 45px;
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        padding: 8px 12px;
+        text-align: left;
+        font-size: 16px;
+    }
+
+        .software-row:hover {
+            background: #f0f0f0;
+        }
+
+    .software-row-selected {
+        background: lightblue;
+        border: 2px solid #2196f3;
+    }
+
+    .software-index {
+        width: 45px;
+        font-weight: bold;
+        text-align: center;
+        margin-right: 10px;
+    }
+
+    .software-name {
+        flex: 1;
+        overflow-wrap: anywhere;
+    }
+
+    .software-navigation {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 15px;
+        gap: 10px;
+    }
+
+    .software-nav-button {
+        flex: 1;
+        min-height: 50px;
+        border: 1px solid #aaa;
+        border-radius: 6px;
+        background: #eee;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+        .software-nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+    .software-page-number {
+        min-width: 100px;
+        text-align: center;
+        font-weight: bold;
+    }
 
     .parameter-navigation {
         display: flex;
@@ -959,6 +1122,52 @@
 
 @code
 {
+    private void SoftwarePageUp()
+    {
+        MenuService.SoftwarePageUp();
+    }
+
+    private void SoftwarePageDown()
+    {
+        MenuService.SoftwarePageDown();
+    }
+
+    private async Task SelectSoftwareItem(MenuItem item)
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("========== FILE SELECT ==========");
+            Console.WriteLine($"INDEX = [{item.Index}]");
+            Console.WriteLine($"FILE = [{item.Text}]");
+            Console.WriteLine("=================================");
+
+            // انتخاب در UI
+            foreach (var file in MenuService.State.Items)
+            {
+                file.Selected = file.Index == item.Index;
+            }
+
+            MenuService.State.SelectedIndex = item.Index;
+
+            // ارسال index به دیاگ
+            await DiagnosticService.SendAsync(
+                item.Index.ToString());
+
+            Console.WriteLine(
+                $"UI -> FILE INDEX SENT: [{item.Index}]");
+
+            Console.WriteLine(
+                "=================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"SelectSoftwareItem ERROR: {ex}");
+        }
+    }
+
+
     private readonly string[] LetterKeys =
     {
         "A", "B", "C", "D", "E", "F",
