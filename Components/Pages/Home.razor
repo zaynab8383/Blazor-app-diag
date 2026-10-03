@@ -371,7 +371,7 @@
     <!-- ========================================================= -->
     <!-- PARAMETERS -->
     <!-- ========================================================= -->
-    @if (MenuService.State.Screen == MenuScreen.Parameters)
+    @* @if (MenuService.State.Screen == MenuScreen.Parameters)
     {
         <div class="parameters-page">
 
@@ -433,7 +433,96 @@
             </div>
 
         </div>
+    } *@
+
+
+
+
+    @if (MenuService.State.Screen == MenuScreen.Parameters)
+    {
+        <div class="parameters-page">
+
+            <div class="parameters-header">
+                @MenuService.State.Header
+            </div>
+
+            <div class="parameter-navigation">
+
+                <button type="button"
+                        class="parameter-nav-button"
+                        @onclick="ParameterUp">
+
+                    UP
+
+                </button>
+
+                <button type="button"
+                        class="parameter-nav-button"
+                        @onclick="ParameterDown">
+
+                    DOWN
+
+                </button>
+
+            </div>
+
+            <div class="parameters-table-wrapper">
+
+                <table class="parameters-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Parameter</th>
+                            <th>Description</th>
+                            <th>Unit</th>
+                            <th>Value</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var parameter in MenuService.State.Parameters)
+                        {
+                            <tr class="@(parameter.IsActive
+                                                                                    ? "parameter-active"
+                                                                                    : "parameter-inactive")">
+
+                                <td>
+                                    @parameter.Index
+                                </td>
+
+                                <td>
+                                    @parameter.Col0
+                                </td>
+
+                                <td>
+                                    @parameter.Col1
+                                </td>
+
+                                <td>
+                                    @parameter.Col2
+                                </td>
+
+                                <td class="parameter-value">
+                                    @parameter.CurrentValue
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
     }
+
+
 
 
     <!-- ========================================================= -->
@@ -525,6 +614,39 @@
 
 
 <style>
+
+    .parameter-navigation {
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+        border-bottom: 1px solid #999;
+    }
+
+    .parameter-nav-button {
+        flex: 1;
+        height: 55px;
+        border: none;
+        border-right: 1px solid #999;
+        background: #eee;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+        .parameter-nav-button:last-child {
+            border-right: none;
+        }
+
+        .parameter-nav-button:hover {
+            background: #ddd;
+        }
+
+        .parameter-nav-button:active {
+            background: #ccc;
+        }
+
 
     .diagnostic-container {
         width: 100%;
@@ -1249,6 +1371,53 @@
                 $"SelectMenuItem ERROR: {ex}");
         }
     }
+
+
+
+
+    private async Task ParameterUp()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("========== UI PARAMETER UP ==========");
+            Console.WriteLine("COMMAND = [1]");
+            Console.WriteLine("=====================================");
+
+            await MenuService.ParameterUp();
+
+            Console.WriteLine(
+                "UI -> PARAMETER UP SENT SUCCESSFULLY");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ParameterUp ERROR: {ex}");
+        }
+    }
+
+
+    private async Task ParameterDown()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("======== UI PARAMETER DOWN ==========");
+            Console.WriteLine("COMMAND = [0]");
+            Console.WriteLine("=====================================");
+
+            await MenuService.ParameterDown();
+
+            Console.WriteLine(
+                "UI -> PARAMETER DOWN SENT SUCCESSFULLY");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ParameterDown ERROR: {ex}");
+        }
+    }
+
 
 
 

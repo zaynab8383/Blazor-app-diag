@@ -1488,6 +1488,42 @@ public class DiagnosticMenuService
     }
 
 
+
+
+
+    // =========================================================
+    // PARAMETER UP / DOWN
+    // Same commands as original WinForms application
+    // =========================================================
+
+    public async Task ParameterUp()
+    {
+        Console.WriteLine();
+        Console.WriteLine("========== PARAMETER UP ==========");
+        Console.WriteLine("COMMAND = [1]");
+        Console.WriteLine("==================================");
+
+        await _diagnosticService.SendAsync("1");
+
+        Console.WriteLine("PARAMETER UP SENT");
+    }
+
+
+    public async Task ParameterDown()
+    {
+        Console.WriteLine();
+        Console.WriteLine("======== PARAMETER DOWN ==========");
+        Console.WriteLine("COMMAND = [0]");
+        Console.WriteLine("==================================");
+
+        await _diagnosticService.SendAsync("0");
+
+        Console.WriteLine("PARAMETER DOWN SENT");
+    }
+
+
+
+
     /* ========================================================= */
     /* MESSAGE CONTINUE */
     /* ========================================================= */
