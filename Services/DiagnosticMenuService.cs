@@ -608,93 +608,174 @@ public class DiagnosticMenuService
     }
 
 
-    private void ShowSoftwareList(string[] value)
+    //private void ShowSoftwareList(string[] value)
+    //{
+    //    State.Screen = MenuScreen.SoftwareList;
+    //    State.Header = "File Explorer";
+
+    //    State.Items.Clear();
+    //    State.Parameters.Clear();
+    //    State.Sensors.Clear();
+    //    State.SensorActions.Clear();
+    //    State.MemoRecords.Clear();
+    //    State.Message = "";
+    //    State.Keyboard.Visible = false;
+
+    //    int selectedIndex = -1;
+
+    //    // -------------------------------
+    //    // Selected_Index
+    //    // -------------------------------
+    //    for (int i = 0; i < value.Length - 1; i++)
+    //    {
+    //        if (value[i]?.Trim() == "Selected_Index")
+    //        {
+    //            selectedIndex = ParseInt(value[i + 1]);
+    //            break;
+    //        }
+    //    }
+
+    //    State.SelectedIndex = selectedIndex;
+
+    //    // -------------------------------
+    //    // Parse all R0, R1, R2, ...
+    //    // -------------------------------
+    //    for (int i = 0; i < value.Length; i++)
+    //    {
+    //        string field = value[i]?.Trim() ?? "";
+
+    //        if (!field.StartsWith("R"))
+    //            continue;
+
+    //        if (!int.TryParse(field.Substring(1), out int index))
+    //            continue;
+
+    //        // Expected:
+    //        //
+    //        // R0
+    //        // File
+    //        // filename.bin
+
+    //        if (i + 2 >= value.Length)
+    //            continue;
+
+    //        string type = value[i + 1]?.Trim() ?? "";
+    //        string text = value[i + 2]?.Trim() ?? "";
+
+    //        if (string.IsNullOrWhiteSpace(text))
+    //            continue;
+
+    //        State.Items.Add(new MenuItem
+    //        {
+    //            Index = index,
+    //            Command = index.ToString(),
+    //            Text = text,
+    //            Selected = index == selectedIndex
+    //        });
+
+    //        Console.WriteLine(
+    //            $"FILE ITEM -> Index=[{index}], Type=[{type}], Text=[{text}]");
+    //    }
+
+    //    // -------------------------------
+    //    // Start from first page
+    //    // -------------------------------
+    //    State.SoftwarePage = 0;
+
+    //    Console.WriteLine();
+    //    Console.WriteLine("========== FILE EXPLORER ==========");
+    //    Console.WriteLine($"Header = [{State.Header}]");
+    //    Console.WriteLine($"SelectedIndex = {State.SelectedIndex}");
+    //    Console.WriteLine($"Total Items = {State.Items.Count}");
+    //    Console.WriteLine($"Page = {State.SoftwarePage + 1}");
+    //    Console.WriteLine(
+    //        $"Total Pages = {GetSoftwarePageCount()}");
+    //    Console.WriteLine("===================================");
+
+    //    Notify();
+    //}
+
+
+
+
+    private void ShowSoftwareList(
+        string[] value)
     {
-        State.Screen = MenuScreen.SoftwareList;
-        State.Header = "File Explorer";
+        State.Screen =
+            MenuScreen.SoftwareList;
+
+        State.Header =
+            GetHeader(value);
 
         State.Items.Clear();
+
         State.Parameters.Clear();
+
         State.Sensors.Clear();
+
         State.SensorActions.Clear();
+
         State.MemoRecords.Clear();
+
         State.Message = "";
+
         State.Keyboard.Visible = false;
 
-        int selectedIndex = -1;
 
-        // -------------------------------
-        // Selected_Index
-        // -------------------------------
-        for (int i = 0; i < value.Length - 1; i++)
+        /*
+         * Software-list messages can vary slightly
+         * in their field structure.
+         *
+         * We keep all meaningful R-fields.
+         */
+
+        int index = 0;
+
+
+        for (int i = 0;
+             i < value.Length;
+             i++)
         {
-            if (value[i]?.Trim() == "Selected_Index")
+            string field =
+                value[i]?.Trim() ?? "";
+
+
+            if (field.StartsWith("R",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                selectedIndex = ParseInt(value[i + 1]);
-                break;
+                string text = "";
+
+
+                if (i + 2 < value.Length)
+                {
+                    text =
+                        value[i + 2]?.Trim() ?? "";
+                }
+
+
+                if (string.IsNullOrWhiteSpace(text) &&
+                    i + 1 < value.Length)
+                {
+                    text =
+                        value[i + 1]?.Trim() ?? "";
+                }
+
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    State.Items.Add(
+                        new MenuItem
+                        {
+                            Index = index++,
+                            Text = text
+                        });
+                }
             }
         }
 
-        State.SelectedIndex = selectedIndex;
-
-        // -------------------------------
-        // Parse all R0, R1, R2, ...
-        // -------------------------------
-        for (int i = 0; i < value.Length; i++)
-        {
-            string field = value[i]?.Trim() ?? "";
-
-            if (!field.StartsWith("R"))
-                continue;
-
-            if (!int.TryParse(field.Substring(1), out int index))
-                continue;
-
-            // Expected:
-            //
-            // R0
-            // File
-            // filename.bin
-
-            if (i + 2 >= value.Length)
-                continue;
-
-            string type = value[i + 1]?.Trim() ?? "";
-            string text = value[i + 2]?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(text))
-                continue;
-
-            State.Items.Add(new MenuItem
-            {
-                Index = index,
-                Command = index.ToString(),
-                Text = text,
-                Selected = index == selectedIndex
-            });
-
-            Console.WriteLine(
-                $"FILE ITEM -> Index=[{index}], Type=[{type}], Text=[{text}]");
-        }
-
-        // -------------------------------
-        // Start from first page
-        // -------------------------------
-        State.SoftwarePage = 0;
-
-        Console.WriteLine();
-        Console.WriteLine("========== FILE EXPLORER ==========");
-        Console.WriteLine($"Header = [{State.Header}]");
-        Console.WriteLine($"SelectedIndex = {State.SelectedIndex}");
-        Console.WriteLine($"Total Items = {State.Items.Count}");
-        Console.WriteLine($"Page = {State.SoftwarePage + 1}");
-        Console.WriteLine(
-            $"Total Pages = {GetSoftwarePageCount()}");
-        Console.WriteLine("===================================");
 
         Notify();
     }
-
 
 
     public int GetSoftwarePageCount()

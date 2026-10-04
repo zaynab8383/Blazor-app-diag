@@ -110,7 +110,7 @@
     <!-- ========================================================= -->
     <!-- KEYBOARD -->
     <!-- ========================================================= -->
-    @if (MenuService.State.Keyboard.Visible)
+    @* @if (MenuService.State.Keyboard.Visible)
     {
         <div class="keyboard-panel">
 
@@ -221,7 +221,44 @@
             </div>
 
         </div>
+    } *@
+
+
+
+    @if (MenuService.State.Keyboard.Visible)
+    {
+        <div class="keyboard-panel">
+
+            <h2>
+                @MenuService.State.Keyboard.Header
+            </h2>
+
+            @* <input class="keyboard-input"
+                   @bind="MenuService.State.Keyboard.Value"
+                   @bind:event="oninput"
+                   autofocus /> *@
+            <input class="keyboard-input"
+                   value="@MenuService.State.Keyboard.Value"
+                   @oninput="KeyboardInputChanged"
+                   autofocus />
+
+            <div class="keyboard-actions">
+
+                <button class="keyboard-action"
+                        @onclick="KeyboardCancel">
+                    CANCEL
+                </button>
+
+                <button class="keyboard-action enter-button"
+                        @onclick="KeyboardEnter">
+                    ENTER
+                </button>
+
+            </div>
+
+        </div>
     }
+
 
 
     <!-- ========================================================= -->
@@ -1053,21 +1090,21 @@
         direction: ltr;
     }
 
-    .keyboard-grid {
+    /* .keyboard-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         gap: 8px;
         margin-bottom: 15px;
-    }
+    } */
 
-    .key-button {
+  /*   .key-button {
         padding: 12px;
         border: 1px solid #aaa;
         border-radius: 5px;
         background: #eee;
         cursor: pointer;
         font-size: 16px;
-    }
+    } */
 
         .key-button:hover {
             background: #ddd;
@@ -1169,34 +1206,6 @@
                 $"SelectSoftwareItem ERROR: {ex}");
         }
     }
-
-
-    private readonly string[] LetterKeys =
-    {
-        "A", "B", "C", "D", "E", "F",
-        "G", "H", "I", "J", "K", "L",
-        "M", "N", "O", "P", "Q", "R",
-        "S", "T", "U", "V", "W", "X",
-        "Y", "Z"
-    };
-
-    private readonly string[] NumberKeys =
-    {
-        "1", "2", "3",
-        "4", "5", "6",
-        "7", "8", "9",
-        "0"
-    };
-
-    private readonly string[] CharacterKeys =
-    {
-        ".", ",", "-", "_",
-        "/", "\\", "@", "#",
-        "(", ")", "+", "*",
-        ":", ";", "!", "?",
-        " "
-    };
-
 
     /* ========================================================= */
     /* TCP SERVER */
@@ -1359,84 +1368,92 @@
     /* KEYBOARD */
     /* ========================================================= */
 
-    private void KeyboardKey(string key)
+    // private void KeyboardKey(string key)
+    // {
+    //     MenuService.State.Keyboard.Value += key;
+
+    //     Console.WriteLine(
+    //         $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardNumbers()
+    // {
+    //     MenuService.State.Keyboard.Mode = "Numbers";
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardCharacters()
+    // {
+    //     MenuService.State.Keyboard.Mode = "Characters";
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardDelete()
+    // {
+    //     string value =
+    //         MenuService.State.Keyboard.Value;
+
+    //     if (!string.IsNullOrEmpty(value))
+    //     {
+    //         MenuService.State.Keyboard.Value =
+    //             value[..^1];
+    //     }
+
+    //     StateHasChanged();
+    // }
+
+
+    // private async Task KeyboardCancel()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD CANCEL ==========");
+
+    //         Console.WriteLine(
+    //             "COMMAND = [-10]");
+
+    //         await DiagnosticService.SendAsync("-10");
+
+    //         Console.WriteLine(
+    //             "UI -> KEYBOARD CANCEL SENT: [-10]");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+
+    //         Console.WriteLine(
+    //             "=====================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD CANCEL ERROR: {ex}");
+    //     }
+    // }
+
+
+
+    private async Task KeyboardCancel()
     {
-        MenuService.State.Keyboard.Value += key;
-
-        Console.WriteLine(
-            $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardNumbers()
-    {
-        MenuService.State.Keyboard.Mode = "Numbers";
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardCharacters()
-    {
-        MenuService.State.Keyboard.Mode = "Characters";
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardDelete()
-    {
-        string value =
-            MenuService.State.Keyboard.Value;
-
-        if (!string.IsNullOrEmpty(value))
-        {
-            MenuService.State.Keyboard.Value =
-                value[..^1];
-        }
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardCancel()
-    {
-        MenuService.State.Keyboard.Visible = false;
-
-        MenuService.State.Screen =
-            MenuService.State.Keyboard.PreviousScreen;
-
-        StateHasChanged();
-    }
-
-
-    private async Task KeyboardEnter()
-    {
-        string value =
-            MenuService.State.Keyboard.Value;
-
-        if (string.IsNullOrEmpty(value))
-            return;
-
         try
         {
             Console.WriteLine();
-            Console.WriteLine(
-                "========== KEYBOARD ENTER ==========");
+            Console.WriteLine("========== KEYBOARD CANCEL ==========");
 
-            Console.WriteLine(
-                $"UI -> KEYBOARD COMMAND: [{value}]");
+            // -2 -2 -2
+            await DiagnosticService.SendAsync("-2-2-2");
+            Console.WriteLine("UI -> CANCEL COMMANDS SENT: [-2-2-2]");
+            Console.WriteLine("=====================================");
 
-            await DiagnosticService.SendAsync(value);
-
-            Console.WriteLine(
-                $"UI -> KEYBOARD COMMAND SENT: [{value}]");
-
-            Console.WriteLine(
-                "====================================");
-
+            // خروج از صفحه Keyboard
             MenuService.State.Keyboard.Visible = false;
 
             await InvokeAsync(StateHasChanged);
@@ -1444,7 +1461,110 @@
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"KEYBOARD TCP ERROR: {ex}");
+                $"KEYBOARD CANCEL ERROR: {ex}");
+
+            MenuService.State.Keyboard.Visible = false;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+
+    // private async Task KeyboardEnter()
+    // {
+    //     string value =
+    //         MenuService.State.Keyboard.Value;
+
+    //     if (string.IsNullOrEmpty(value))
+    //         return;
+
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine(
+    //             "========== KEYBOARD ENTER ==========");
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD COMMAND: [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD COMMAND SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "====================================");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD TCP ERROR: {ex}");
+    //     }
+    // }
+
+    private async Task KeyboardEnter()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("========== KEYBOARD ENTER ==========");
+            Console.WriteLine(
+                $"VALUE = [{MenuService.State.Keyboard.Value}]");
+
+            // -1 -1 -1
+            await DiagnosticService.SendAsync("-1-1-1");
+
+            Console.WriteLine("UI -> ENTER COMMANDS SENT: [-1-1-1]");
+            Console.WriteLine("===================================");
+
+            // خروج از صفحه Keyboard
+            MenuService.State.Keyboard.Visible = false;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"KEYBOARD ENTER ERROR: {ex}");
+
+            MenuService.State.Keyboard.Visible = false;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task KeyboardInputChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            string value = e.Value?.ToString() ?? "";
+
+            // مقدار فعلی TextBox در Blazor
+            MenuService.State.Keyboard.Value = value;
+
+            Console.WriteLine();
+            Console.WriteLine("========== KEYBOARD INPUT ==========");
+            Console.WriteLine($"VALUE = [{value}]");
+
+            // دقیقاً مثل WinForms TextChanged
+            await DiagnosticService.SendAsync(value);
+
+            Console.WriteLine(
+                $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+            Console.WriteLine(
+                "===================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"KEYBOARD INPUT ERROR: {ex}");
         }
     }
 

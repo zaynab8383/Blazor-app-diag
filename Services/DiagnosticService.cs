@@ -212,8 +212,10 @@ public class DiagnosticService : IDisposable
     public async Task SendAsync(
         string command)
     {
-        if (string.IsNullOrEmpty(command))
-            return;
+        //if (string.IsNullOrEmpty(command))
+        //    return;
+
+        if (command == null) return;
 
         if (!_tcpServer.IsClientConnected)
         {
