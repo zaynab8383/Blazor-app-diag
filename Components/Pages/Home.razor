@@ -1142,7 +1142,6 @@
             Console.WriteLine($"FILE = [{item.Text}]");
             Console.WriteLine("=================================");
 
-            // انتخاب در UI
             foreach (var file in MenuService.State.Items)
             {
                 file.Selected = file.Index == item.Index;
@@ -1150,9 +1149,13 @@
 
             MenuService.State.SelectedIndex = item.Index;
 
-            // ارسال index به دیاگ
+
+
+            int commandIndex = item.Index % MenuState.SoftwarePageSize;
+
             await DiagnosticService.SendAsync(
-                item.Index.ToString());
+                commandIndex.ToString());
+
 
             Console.WriteLine(
                 $"UI -> FILE INDEX SENT: [{item.Index}]");

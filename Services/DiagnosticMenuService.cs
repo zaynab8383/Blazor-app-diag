@@ -75,7 +75,7 @@ public class KeyboardState
 public class MenuState
 {
     public int SoftwarePage { get; set; } = 0;
-    public const int SoftwarePageSize = 10;
+    public const int SoftwarePageSize = 18;
     public MenuScreen Screen { get; set; } =
         MenuScreen.None;
 
