@@ -12,7 +12,12 @@ public enum MenuScreen
     SelectPage,
     Parameters,
     Sensor,
-    SoftwareList
+    SoftwareList,
+
+    Type10,
+    Type11,
+    Type12,
+    Type13
 }
 
 public class MenuItem
@@ -59,6 +64,7 @@ public class DiagnosticParameter
 
 public class KeyboardState
 {
+    public int Type { get; set; }
     public bool Visible { get; set; }
 
     public string Header { get; set; } = "";
@@ -196,12 +202,28 @@ public class DiagnosticMenuService
                 /*
                  * Keyboard
                  */
+                //case "10":
+
+                //    ShowKeyboard(value);
+
+                //    break;
+
+
                 case "10":
-
-                    ShowKeyboard(value);
-
+                    ShowType10(value);
                     break;
 
+                case "11":
+                    ShowType11(value);
+                    break;
+
+                case "12":
+                    ShowType12(value);
+                    break;
+
+                case "13":
+                    ShowType13(value);
+                    break;
 
                 /*
                  * Message
@@ -497,6 +519,105 @@ public class DiagnosticMenuService
 
         Notify();
     }
+
+
+
+    private void ShowType10(string[] value)
+    {
+        State.Keyboard.PreviousScreen = State.Screen;
+
+        State.Screen = MenuScreen.Type10;
+        State.Keyboard.Visible = true;
+        State.Keyboard.Type = 10;
+
+        State.Keyboard.Header =
+            value.Length > 3
+                ? value[3]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Value =
+            value.Length > 4
+                ? value[4]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Mode = "Letters";
+
+        Notify();
+    }
+
+
+    private void ShowType11(string[] value)
+    {
+        State.Keyboard.PreviousScreen = State.Screen;
+
+        State.Screen = MenuScreen.Type11;
+        State.Keyboard.Visible = true;
+        State.Keyboard.Type = 11;
+
+        State.Keyboard.Header =
+            value.Length > 3
+                ? value[3]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Value =
+            value.Length > 4
+                ? value[4]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Mode = "Decimal";
+
+        Notify();
+    }
+
+
+    private void ShowType12(string[] value)
+    {
+        State.Keyboard.PreviousScreen = State.Screen;
+
+        State.Screen = MenuScreen.Type12;
+        State.Keyboard.Visible = true;
+        State.Keyboard.Type = 12;
+
+        State.Keyboard.Header =
+            value.Length > 3
+                ? value[3]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Value =
+            value.Length > 4
+                ? value[4]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Mode = "Hex";
+
+        Notify();
+    }
+
+
+    private void ShowType13(string[] value)
+    {
+        State.Keyboard.PreviousScreen = State.Screen;
+
+        State.Screen = MenuScreen.Type13;
+        State.Keyboard.Visible = true;
+        State.Keyboard.Type = 13;
+
+        State.Keyboard.Header =
+            value.Length > 3
+                ? value[3]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Value =
+            value.Length > 4
+                ? value[4]?.Trim() ?? ""
+                : "";
+
+        State.Keyboard.Mode = "Password";
+
+        Notify();
+    }
+
+
 
     ///* ========================================================= */
     ///* TYPE 0 / TYPE 18 */
@@ -834,39 +955,39 @@ public class DiagnosticMenuService
     /* KEYBOARD */
     /* ========================================================= */
 
-    private void ShowKeyboard(
-        string[] value)
-    {
-        State.Keyboard.PreviousScreen =
-            State.Screen;
+    //private void ShowKeyboard(
+    //    string[] value)
+    //{
+    //    State.Keyboard.PreviousScreen =
+    //        State.Screen;
 
 
-        State.Screen =
-            MenuScreen.None;
+    //    State.Screen =
+    //        MenuScreen.None;
 
 
-        State.Keyboard.Visible =
-            true;
+    //    State.Keyboard.Visible =
+    //        true;
 
 
-        State.Keyboard.Header =
-            value.Length > 3
-                ? value[3]?.Trim() ?? ""
-                : "";
+    //    State.Keyboard.Header =
+    //        value.Length > 3
+    //            ? value[3]?.Trim() ?? ""
+    //            : "";
 
 
-        State.Keyboard.Value =
-            value.Length > 4
-                ? value[4]?.Trim() ?? ""
-                : "";
+    //    State.Keyboard.Value =
+    //        value.Length > 4
+    //            ? value[4]?.Trim() ?? ""
+    //            : "";
 
 
-        State.Keyboard.Mode =
-            "Letters";
+    //    State.Keyboard.Mode =
+    //        "Letters";
 
 
-        Notify();
-    }
+    //    Notify();
+    //}
 
 
     /* ========================================================= */
@@ -895,12 +1016,6 @@ public class DiagnosticMenuService
 
         State.Header =
             GetHeader(value);
-
-
-        /*
-         * Try to use the first useful
-         * field as message text.
-         */
 
         State.Message = "";
 

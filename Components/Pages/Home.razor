@@ -224,7 +224,6 @@
     } *@
 
 
-
     @if (MenuService.State.Keyboard.Visible)
     {
         <div class="keyboard-panel">
@@ -233,25 +232,28 @@
                 @MenuService.State.Keyboard.Header
             </h2>
 
-            @* <input class="keyboard-input"
-                   @bind="MenuService.State.Keyboard.Value"
-                   @bind:event="oninput"
-                   autofocus /> *@
             <input class="keyboard-input"
+                   type="@(MenuService.State.Keyboard.Type == 13 ? "password" : "text")"
                    value="@MenuService.State.Keyboard.Value"
                    @oninput="KeyboardInputChanged"
                    autofocus />
 
             <div class="keyboard-actions">
 
-                <button class="keyboard-action"
+                <button type="button"
+                        class="keyboard-action"
                         @onclick="KeyboardCancel">
+
                     CANCEL
+
                 </button>
 
-                <button class="keyboard-action enter-button"
+                <button type="button"
+                        class="keyboard-action enter-button"
                         @onclick="KeyboardEnter">
+
                     ENTER
+
                 </button>
 
             </div>
@@ -560,7 +562,6 @@
 
 
 
-
     <!-- ========================================================= -->
     <!-- SENSOR -->
     <!-- ========================================================= -->
@@ -627,27 +628,11 @@
         </div>
     }
 
-    @* @if (MenuService.State.Screen != MenuScreen.None)
-    {
-        <div class="back-container">
-
-            <button type="button"
-                    class="diagnostic-button back-button"
-                    @onclick="Back">
-
-                Back
-
-            </button>
-
-        </div>
-    } *@
-
-
     <!-- ========================================================= -->
     <!-- BACK -->
     <!-- ========================================================= -->
 
-    <div class="back-container"
+    @* <div class="back-container"
          style="@(MenuService.State.Screen != MenuScreen.None
                         ? "visibility: visible;"
                         : "visibility: hidden;")">
@@ -660,8 +645,28 @@
 
         </button>
 
-    </div>
+    </div> *@
 
+    <div class="back-container"
+         style="@(
+         MenuService.State.Keyboard.Visible &&
+         (MenuService.State.Keyboard.Type == 10 ||
+          MenuService.State.Keyboard.Type == 11 ||
+          MenuService.State.Keyboard.Type == 12 ||
+          MenuService.State.Keyboard.Type == 13)
+             ? "visibility: hidden;"
+             : "visibility: visible;"
+         )">
+
+        <button type="button"
+                class="diagnostic-button back-button"
+                @onclick="Back">
+
+            Back
+
+        </button>
+
+    </div>
 
 
 
@@ -1441,6 +1446,9 @@
 
 
 
+
+
+
     private async Task KeyboardCancel()
     {
         try
@@ -1454,9 +1462,17 @@
             Console.WriteLine("=====================================");
 
             // خروج از صفحه Keyboard
+            // MenuService.State.Keyboard.Visible = false;
+
+            // await InvokeAsync(StateHasChanged);
             MenuService.State.Keyboard.Visible = false;
 
+            MenuService.State.Screen =
+                MenuService.State.Keyboard.PreviousScreen;
+
             await InvokeAsync(StateHasChanged);
+
+
         }
         catch (Exception ex)
         {
@@ -1524,7 +1540,8 @@
 
             // خروج از صفحه Keyboard
             MenuService.State.Keyboard.Visible = false;
-
+            MenuService.State.Screen =
+                MenuService.State.Keyboard.PreviousScreen;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -1539,20 +1556,115 @@
     }
 
 
+    // private async Task KeyboardInputChanged(ChangeEventArgs e)
+    // {
+    //     try
+    //     {
+    //         string value = e.Value?.ToString() ?? "";
+
+    //         MenuService.State.Keyboard.Value = value;
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD INPUT ERROR: {ex}");
+    //     }
+    // }
+
+
     private async Task KeyboardInputChanged(ChangeEventArgs e)
     {
         try
         {
             string value = e.Value?.ToString() ?? "";
 
-            // مقدار فعلی TextBox در Blazor
-            MenuService.State.Keyboard.Value = value;
+            int type =
+                MenuService.State.Keyboard.Type;
+
+            // ============================
+            // TYPE 10
+            // همه کاراکترها
+            // ============================
+            if (type == 10)
+            {
+                MenuService.State.Keyboard.Value = value;
+            }
+
+            // ============================
+            // TYPE 11
+            // Decimal
+            // 0-9
+            // -
+            // .
+            // ============================
+            else if (type == 11)
+            {
+                string filtered = "";
+
+                foreach (char c in value)
+                {
+                    if (char.IsDigit(c) ||
+                        c == '-' ||
+                        c == '.')
+                    {
+                        filtered += c;
+                    }
+                }
+
+                value = filtered;
+
+                MenuService.State.Keyboard.Value = value;
+            }
+
+            // ============================
+            // TYPE 12
+            // HEX
+            // 0-9 / A-F
+            // ============================
+            else if (type == 12)
+            {
+                string filtered = "";
+
+                foreach (char c in value.ToUpperInvariant())
+                {
+                    if ((c >= '0' && c <= '9') ||
+                        (c >= 'A' && c <= 'F'))
+                    {
+                        filtered += c;
+                    }
+                }
+
+                value = filtered;
+
+                MenuService.State.Keyboard.Value = value;
+            }
+
+            // ============================
+            // TYPE 13
+            // Password
+            // ============================
+            else if (type == 13)
+            {
+                MenuService.State.Keyboard.Value = value;
+            }
 
             Console.WriteLine();
             Console.WriteLine("========== KEYBOARD INPUT ==========");
+            Console.WriteLine($"TYPE  = [{type}]");
             Console.WriteLine($"VALUE = [{value}]");
 
-            // دقیقاً مثل WinForms TextChanged
             await DiagnosticService.SendAsync(value);
 
             Console.WriteLine(
