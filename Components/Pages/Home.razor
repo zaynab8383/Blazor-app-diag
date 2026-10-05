@@ -110,118 +110,7 @@
     <!-- ========================================================= -->
     <!-- KEYBOARD -->
     <!-- ========================================================= -->
-    @* @if (MenuService.State.Keyboard.Visible)
-    {
-        <div class="keyboard-panel">
-
-            <h2>
-                @MenuService.State.Keyboard.Header
-            </h2>
-
-            <input class="keyboard-input"
-                   @bind="MenuService.State.Keyboard.Value"
-                   readonly />
-
-            @if (MenuService.State.Keyboard.Mode == "Letters")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in LetterKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
-
-            @if (MenuService.State.Keyboard.Mode == "Numbers")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in NumberKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
-
-            @if (MenuService.State.Keyboard.Mode == "Characters")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in CharacterKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
-
-            <div class="keyboard-actions">
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardNumbers">
-
-                    123
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardCharacters">
-
-                    کاراکترها
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardDelete">
-
-                    DEL
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardCancel">
-
-                    CANCEL
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action enter-button"
-                        @onclick="KeyboardEnter">
-
-                    ENTER
-
-                </button>
-
-            </div>
-
-        </div>
-    } *@
+   
 
 
     @if (MenuService.State.Keyboard.Visible)
@@ -398,6 +287,7 @@
 
         </div>
     }
+
 
 
     <!-- ========================================================= -->
@@ -1557,79 +1447,107 @@
 
 
 
+    // private async Task KeyboardEnter()
+    // {
+    //     try
+    //     {
+    //         string value =
+    //             MenuService.State.Keyboard.Value ?? "";
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD ENTER ==========");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         if (MenuService.State.Keyboard.Type == 11)
+    //         {
+    //             if (value.Length != 4)
+    //             {
+    //                 Console.WriteLine(
+    //                     "PASSWORD ERROR -> PASSWORD MUST BE EXACTLY 4 CHARACTERS");
+
+    //                 Console.WriteLine(
+    //                     "===================================");
+
+    //                 await InvokeAsync(StateHasChanged);
+    //                 return;
+    //             }
+
+    //             فقط 0-9 و . و - مجاز هستند
+    //             foreach (char c in value)
+    //             {
+    //                 if (!char.IsDigit(c) &&
+    //                     c != '.' &&
+    //                     c != '-')
+    //                 {
+    //                     Console.WriteLine(
+    //                         $"PASSWORD ERROR -> INVALID CHARACTER [{c}]");
+
+    //                     Console.WriteLine(
+    //                         "===================================");
+
+    //                     await InvokeAsync(StateHasChanged);
+    //                     return;
+    //                 }
+    //             }
+    //         }
+
+    //         اگر معتبر بود، ENTER واقعی را بفرست
+    //         await DiagnosticService.SendAsync("-1-1-1");
+
+    //         Console.WriteLine(
+    //             "UI -> ENTER COMMANDS SENT: [-1-1-1]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         MenuService.State.Screen =
+    //             MenuService.State.Keyboard.PreviousScreen;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD ENTER ERROR: {ex}");
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
+
+
     private async Task KeyboardEnter()
     {
         try
         {
             string value =
-                MenuService.State.Keyboard.Value ?? "";
+                MenuService.State.Keyboard.Value?.Trim() ?? "";
 
             Console.WriteLine();
             Console.WriteLine("========== KEYBOARD ENTER ==========");
-            Console.WriteLine($"VALUE = [{value}]");
+            Console.WriteLine($"CURRENT KEYBOARD VALUE = [{value}]");
 
-            // فقط برای Type 11 رمز را بررسی می‌کنیم
-            if (MenuService.State.Keyboard.Type == 11)
-            {
-                // باید دقیقاً 4 کاراکتر باشد
-                if (value.Length != 4)
-                {
-                    Console.WriteLine(
-                        "PASSWORD ERROR -> PASSWORD MUST BE EXACTLY 4 CHARACTERS");
 
-                    Console.WriteLine(
-                        "===================================");
+            await Task.Delay(200);
 
-                    await InvokeAsync(StateHasChanged);
-                    return;
-                }
+            Console.WriteLine(
+                "KEYBOARD EXIT COMMAND = [-1-1-1]");
 
-                // فقط 0-9 و . و - مجاز هستند
-                foreach (char c in value)
-                {
-                    if (!char.IsDigit(c) &&
-                        c != '.' &&
-                        c != '-')
-                    {
-                        Console.WriteLine(
-                            $"PASSWORD ERROR -> INVALID CHARACTER [{c}]");
-
-                        Console.WriteLine(
-                            "===================================");
-
-                        await InvokeAsync(StateHasChanged);
-                        return;
-                    }
-                }
-            }
-
-            // اگر معتبر بود، ENTER واقعی را بفرست
             await DiagnosticService.SendAsync("-1-1-1");
 
             Console.WriteLine(
-                "UI -> ENTER COMMANDS SENT: [-1-1-1]");
+                "UI -> KEYBOARD EXIT COMMAND SENT: [-1-1-1]");
 
             Console.WriteLine(
                 "===================================");
-
-            MenuService.State.Keyboard.Visible = false;
-
-            MenuService.State.Screen =
-                MenuService.State.Keyboard.PreviousScreen;
-
-            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"KEYBOARD ENTER ERROR: {ex}");
-
-            await InvokeAsync(StateHasChanged);
+                $"KeyboardEnter ERROR: {ex}");
         }
     }
-
-
-
 
     // private async Task KeyboardInputChanged(ChangeEventArgs e)
     // {
@@ -1774,7 +1692,6 @@
             Console.WriteLine($"TYPE  = [{type}]");
             Console.WriteLine($"VALUE = [{value}]");
 
-            // مقدار تایپ‌شده را همان لحظه برای دیاگ بفرست
             await DiagnosticService.SendAsync(value);
 
             Console.WriteLine(
@@ -1973,6 +1890,33 @@
     /* MESSAGE */
     /* ========================================================= */
 
+    // private async Task ContinueMessage()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine(
+    //             "======== UI CONTINUE COMMAND =========");
+
+    //         Console.WriteLine(
+    //             "COMMAND = [0]");
+
+    //         await DiagnosticService.SendAsync("0");
+
+    //         Console.WriteLine(
+    //             "UI -> CONTINUE COMMAND SENT: [0]");
+
+    //         Console.WriteLine(
+    //             "=====================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"ContinueMessage ERROR: {ex}");
+    //     }
+    // }
+
+
     private async Task ContinueMessage()
     {
         try
@@ -1980,14 +1924,14 @@
             Console.WriteLine();
             Console.WriteLine(
                 "======== UI CONTINUE COMMAND =========");
+            
+            Console.WriteLine(
+                            "COMMAND = [543]");
+
+            await DiagnosticService.SendAsync("543");
 
             Console.WriteLine(
-                "COMMAND = [0]");
-
-            await DiagnosticService.SendAsync("0");
-
-            Console.WriteLine(
-                "UI -> CONTINUE COMMAND SENT: [0]");
+                "UI -> CONTINUE COMMAND SENT: [543]");
 
             Console.WriteLine(
                 "=====================================");
@@ -1998,6 +1942,7 @@
                 $"ContinueMessage ERROR: {ex}");
         }
     }
+
 
 
     /* ========================================================= */
