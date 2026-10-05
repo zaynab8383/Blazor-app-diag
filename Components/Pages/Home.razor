@@ -1523,25 +1523,100 @@
     //     }
     // }
 
+    // private async Task KeyboardEnter()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD ENTER ==========");
+    //         Console.WriteLine(
+    //             $"VALUE = [{MenuService.State.Keyboard.Value}]");
+
+    //         -1 -1 -1
+    //         await DiagnosticService.SendAsync("-1-1-1");
+
+    //         Console.WriteLine("UI -> ENTER COMMANDS SENT: [-1-1-1]");
+    //         Console.WriteLine("===================================");
+
+    //         خروج از صفحه Keyboard
+    //         MenuService.State.Keyboard.Visible = false;
+    //         MenuService.State.Screen =
+    //             MenuService.State.Keyboard.PreviousScreen;
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD ENTER ERROR: {ex}");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
+
+
+
     private async Task KeyboardEnter()
     {
         try
         {
+            string value =
+                MenuService.State.Keyboard.Value ?? "";
+
             Console.WriteLine();
             Console.WriteLine("========== KEYBOARD ENTER ==========");
-            Console.WriteLine(
-                $"VALUE = [{MenuService.State.Keyboard.Value}]");
+            Console.WriteLine($"VALUE = [{value}]");
 
-            // -1 -1 -1
+            // فقط برای Type 11 رمز را بررسی می‌کنیم
+            if (MenuService.State.Keyboard.Type == 11)
+            {
+                // باید دقیقاً 4 کاراکتر باشد
+                if (value.Length != 4)
+                {
+                    Console.WriteLine(
+                        "PASSWORD ERROR -> PASSWORD MUST BE EXACTLY 4 CHARACTERS");
+
+                    Console.WriteLine(
+                        "===================================");
+
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+
+                // فقط 0-9 و . و - مجاز هستند
+                foreach (char c in value)
+                {
+                    if (!char.IsDigit(c) &&
+                        c != '.' &&
+                        c != '-')
+                    {
+                        Console.WriteLine(
+                            $"PASSWORD ERROR -> INVALID CHARACTER [{c}]");
+
+                        Console.WriteLine(
+                            "===================================");
+
+                        await InvokeAsync(StateHasChanged);
+                        return;
+                    }
+                }
+            }
+
+            // اگر معتبر بود، ENTER واقعی را بفرست
             await DiagnosticService.SendAsync("-1-1-1");
 
-            Console.WriteLine("UI -> ENTER COMMANDS SENT: [-1-1-1]");
-            Console.WriteLine("===================================");
+            Console.WriteLine(
+                "UI -> ENTER COMMANDS SENT: [-1-1-1]");
 
-            // خروج از صفحه Keyboard
+            Console.WriteLine(
+                "===================================");
+
             MenuService.State.Keyboard.Visible = false;
+
             MenuService.State.Screen =
                 MenuService.State.Keyboard.PreviousScreen;
+
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -1549,11 +1624,11 @@
             Console.WriteLine(
                 $"KEYBOARD ENTER ERROR: {ex}");
 
-            MenuService.State.Keyboard.Visible = false;
-
             await InvokeAsync(StateHasChanged);
         }
     }
+
+
 
 
     // private async Task KeyboardInputChanged(ChangeEventArgs e)
@@ -1584,87 +1659,122 @@
     // }
 
 
+    // private async Task KeyboardInputChanged(ChangeEventArgs e)
+    // {
+    //     try
+    //     {
+    //         string value = e.Value?.ToString() ?? "";
+
+    //         int type =
+    //             MenuService.State.Keyboard.Type;
+
+    //         ============================
+    //         TYPE 10
+    //         همه کاراکترها
+    //         ============================
+    //         if (type == 10)
+    //         {
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 11
+    //         Decimal
+    //         0-9
+    //         -
+    //         .
+    //         ============================
+    //         else if (type == 11)
+    //         {
+    //             string filtered = "";
+
+    //             foreach (char c in value)
+    //             {
+    //                 if (char.IsDigit(c) ||
+    //                     c == '-' ||
+    //                     c == '.')
+    //                 {
+    //                     filtered += c;
+    //                 }
+    //             }
+
+    //             value = filtered;
+
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 12
+    //         HEX
+    //         0-9 / A-F
+    //         ============================
+    //         else if (type == 12)
+    //         {
+    //             string filtered = "";
+
+    //             foreach (char c in value.ToUpperInvariant())
+    //             {
+    //                 if ((c >= '0' && c <= '9') ||
+    //                     (c >= 'A' && c <= 'F'))
+    //                 {
+    //                     filtered += c;
+    //                 }
+    //             }
+
+    //             value = filtered;
+
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 13
+    //         Password
+    //         ============================
+    //         else if (type == 13)
+    //         {
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
+    //         Console.WriteLine($"TYPE  = [{type}]");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD INPUT ERROR: {ex}");
+    //     }
+    // }
+
+
+
     private async Task KeyboardInputChanged(ChangeEventArgs e)
     {
         try
         {
-            string value = e.Value?.ToString() ?? "";
+            string value =
+                e.Value?.ToString() ?? "";
 
             int type =
                 MenuService.State.Keyboard.Type;
 
-            // ============================
-            // TYPE 10
-            // همه کاراکترها
-            // ============================
-            if (type == 10)
-            {
-                MenuService.State.Keyboard.Value = value;
-            }
-
-            // ============================
-            // TYPE 11
-            // Decimal
-            // 0-9
-            // -
-            // .
-            // ============================
-            else if (type == 11)
-            {
-                string filtered = "";
-
-                foreach (char c in value)
-                {
-                    if (char.IsDigit(c) ||
-                        c == '-' ||
-                        c == '.')
-                    {
-                        filtered += c;
-                    }
-                }
-
-                value = filtered;
-
-                MenuService.State.Keyboard.Value = value;
-            }
-
-            // ============================
-            // TYPE 12
-            // HEX
-            // 0-9 / A-F
-            // ============================
-            else if (type == 12)
-            {
-                string filtered = "";
-
-                foreach (char c in value.ToUpperInvariant())
-                {
-                    if ((c >= '0' && c <= '9') ||
-                        (c >= 'A' && c <= 'F'))
-                    {
-                        filtered += c;
-                    }
-                }
-
-                value = filtered;
-
-                MenuService.State.Keyboard.Value = value;
-            }
-
-            // ============================
-            // TYPE 13
-            // Password
-            // ============================
-            else if (type == 13)
-            {
-                MenuService.State.Keyboard.Value = value;
-            }
+            MenuService.State.Keyboard.Value = value;
 
             Console.WriteLine();
             Console.WriteLine("========== KEYBOARD INPUT ==========");
             Console.WriteLine($"TYPE  = [{type}]");
             Console.WriteLine($"VALUE = [{value}]");
 
+            // مقدار تایپ‌شده را همان لحظه برای دیاگ بفرست
             await DiagnosticService.SendAsync(value);
 
             Console.WriteLine(

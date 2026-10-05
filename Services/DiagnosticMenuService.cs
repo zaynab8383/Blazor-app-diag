@@ -102,6 +102,7 @@ public class MenuState
     public int SelectedIndex { get; set; } = -1;
 
     public KeyboardState Keyboard { get; set; } = new();
+    public int PendingPasswordDigits { get; set; } = 0;
 }
 
 
@@ -228,12 +229,34 @@ public class DiagnosticMenuService
                 /*
                  * Message
                  */
+                //case "14":
+
+                //    ShowMessage(value);
+
+                //    break;
+
                 case "14":
+                    if (State.Screen == MenuScreen.BoxPage &&
+                        State.Header.Contains("رمز"))
+                    {
+                        if (State.SelectedIndex == 0)
+                        {
+                            State.PendingPasswordDigits = 4;
+
+                            Console.WriteLine(
+                                "PASSWORD FLOW -> 4 DIGIT CONFIRMATION RECEIVED");
+                        }
+                        else if (State.SelectedIndex == 1)
+                        {
+                            State.PendingPasswordDigits = 6;
+
+                            Console.WriteLine(
+                                "PASSWORD FLOW -> 6 DIGIT CONFIRMATION RECEIVED");
+                        }
+                    }
 
                     ShowMessage(value);
-
                     break;
-
 
                 case "17":
                     ShowSoftwareList(value);
@@ -326,6 +349,50 @@ public class DiagnosticMenuService
         State.Screen = MenuScreen.BoxPage;
 
         State.Header = GetHeader(value);
+
+
+
+        Console.WriteLine();
+        Console.WriteLine("========== SHOW BOX PAGE ==========");
+        Console.WriteLine($"HEADER = [{State.Header}]");
+        Console.WriteLine($"PENDING PASSWORD = [{State.PendingPasswordDigits}]");
+        Console.WriteLine($"VALUE LENGTH = [{value.Length}]");
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            Console.WriteLine($"VALUE[{i}] = [{value[i]}]");
+        }
+
+        Console.WriteLine("==================================");
+
+
+
+        if (State.PendingPasswordDigits == 4 ||
+            State.PendingPasswordDigits == 6)
+        {
+            State.Keyboard.PreviousScreen = MenuScreen.BoxPage;
+
+            State.Keyboard.Visible = true;
+            State.Keyboard.Type = 11;
+
+            State.Keyboard.Header =
+                State.PendingPasswordDigits == 4
+                    ? "تعیین رمز 4 رقمی"
+                    : "تعیین رمز 6 رقمی";
+
+            State.Keyboard.Value = "";
+            State.Keyboard.Mode = "Decimal";
+
+            State.Screen = MenuScreen.Type11;
+
+            Console.WriteLine(
+                $"PASSWORD FLOW -> TYPE 11 OPENED ({State.PendingPasswordDigits} DIGITS)");
+
+            State.PendingPasswordDigits = 0;
+
+            Notify();
+            return;
+        }
 
         State.Items.Clear();
         State.Parameters.Clear();
@@ -1553,17 +1620,27 @@ public class DiagnosticMenuService
     /* SEND MENU COMMAND */
     /* ========================================================= */
 
-    public async Task SelectMenuItem(
-        int index)
+    //public async Task SelectMenuItem(
+    //    int index)
+    //{
+    //    string command =
+    //        index.ToString();
+
+    //    Console.WriteLine(
+    //        $"MENU -> TCP [{command}]");
+
+    //    await _diagnosticService.SendAsync(
+    //        command);
+    //}
+
+
+    public async Task SelectMenuItem(int index)
     {
-        string command =
-            index.ToString();
+        string command = index.ToString();
 
-        Console.WriteLine(
-            $"MENU -> TCP [{command}]");
+        Console.WriteLine($"MENU -> TCP [{command}]");
 
-        await _diagnosticService.SendAsync(
-            command);
+        await _diagnosticService.SendAsync(command);
     }
 
 
@@ -1650,15 +1727,35 @@ public class DiagnosticMenuService
             "0");
     }
 
-
     /* ========================================================= */
     /* BACK */
     /* ========================================================= */
 
+    //public async Task Back()
+    //{
+    //    await _diagnosticService.SendAsync(
+    //        "-1");
+    //}
+
+    //public async Task Back()
+    //{
+    //    State.PendingPasswordDigits = 0;
+
+    //    Console.WriteLine(
+    //        "PASSWORD FLOW -> BACK, PENDING PASSWORD CLEARED");
+
+    //    await _diagnosticService.SendAsync("-1");
+    //}
+
+
     public async Task Back()
     {
-        await _diagnosticService.SendAsync(
-            "-1");
+        State.PendingPasswordDigits = 0;
+
+        Console.WriteLine(
+            "PASSWORD FLOW -> BACK -> PENDING CLEARED");
+
+        await _diagnosticService.SendAsync("-1");
     }
 
 
