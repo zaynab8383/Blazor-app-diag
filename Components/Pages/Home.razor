@@ -572,6 +572,16 @@
         </div>
     }
 
+
+    <button @onclick="TestDatabase">
+        Test Database
+    </button>
+
+    @if (!string.IsNullOrEmpty(DatabaseTestResult))
+    {
+        <p>@DatabaseTestResult</p>
+    }
+
 </div>
 
 
@@ -1344,130 +1354,6 @@
         }
     }
 
-    // private async Task KeyboardInputChanged(ChangeEventArgs e)
-    // {
-    //     try
-    //     {
-    //         string value = e.Value?.ToString() ?? "";
-
-    //         MenuService.State.Keyboard.Value = value;
-
-    //         Console.WriteLine();
-    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
-    //         Console.WriteLine($"VALUE = [{value}]");
-
-    //         await DiagnosticService.SendAsync(value);
-
-    //         Console.WriteLine(
-    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
-
-    //         Console.WriteLine(
-    //             "===================================");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine(
-    //             $"KEYBOARD INPUT ERROR: {ex}");
-    //     }
-    // }
-
-
-    // private async Task KeyboardInputChanged(ChangeEventArgs e)
-    // {
-    //     try
-    //     {
-    //         string value = e.Value?.ToString() ?? "";
-
-    //         int type =
-    //             MenuService.State.Keyboard.Type;
-
-    //         ============================
-    //         TYPE 10
-    //         همه کاراکترها
-    //         ============================
-    //         if (type == 10)
-    //         {
-    //             MenuService.State.Keyboard.Value = value;
-    //         }
-
-    //         ============================
-    //         TYPE 11
-    //         Decimal
-    //         0-9
-    //         -
-    //         .
-    //         ============================
-    //         else if (type == 11)
-    //         {
-    //             string filtered = "";
-
-    //             foreach (char c in value)
-    //             {
-    //                 if (char.IsDigit(c) ||
-    //                     c == '-' ||
-    //                     c == '.')
-    //                 {
-    //                     filtered += c;
-    //                 }
-    //             }
-
-    //             value = filtered;
-
-    //             MenuService.State.Keyboard.Value = value;
-    //         }
-
-    //         ============================
-    //         TYPE 12
-    //         HEX
-    //         0-9 / A-F
-    //         ============================
-    //         else if (type == 12)
-    //         {
-    //             string filtered = "";
-
-    //             foreach (char c in value.ToUpperInvariant())
-    //             {
-    //                 if ((c >= '0' && c <= '9') ||
-    //                     (c >= 'A' && c <= 'F'))
-    //                 {
-    //                     filtered += c;
-    //                 }
-    //             }
-
-    //             value = filtered;
-
-    //             MenuService.State.Keyboard.Value = value;
-    //         }
-
-    //         ============================
-    //         TYPE 13
-    //         Password
-    //         ============================
-    //         else if (type == 13)
-    //         {
-    //             MenuService.State.Keyboard.Value = value;
-    //         }
-
-    //         Console.WriteLine();
-    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
-    //         Console.WriteLine($"TYPE  = [{type}]");
-    //         Console.WriteLine($"VALUE = [{value}]");
-
-    //         await DiagnosticService.SendAsync(value);
-
-    //         Console.WriteLine(
-    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
-
-    //         Console.WriteLine(
-    //             "===================================");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine(
-    //             $"KEYBOARD INPUT ERROR: {ex}");
-    //     }
-    // }
-
 
 
     private async Task KeyboardInputChanged(ChangeEventArgs e)
@@ -1760,5 +1646,24 @@
 
         TcpServer.LogReceived -=
             OnTcpLogReceived;
+    }
+
+
+
+    private string? DatabaseTestResult;
+
+    private async Task TestDatabase()
+    {
+        var device = await DiagDeviceService
+            .GetBySerialNumberAsync("TEST001");
+
+        if (device == null)
+        {
+            DatabaseTestResult = "Device not found.";
+            return;
+        }
+
+        DatabaseTestResult =
+            $"Found: {device.SerialNumber} - Phone: {device.OwnerPhoneNumber}";
     }
 }
