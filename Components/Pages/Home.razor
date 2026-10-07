@@ -5,6 +5,7 @@
 
 @implements IDisposable
 
+@inject DiagDeviceService DiagDeviceService
 @inject DiagnosticService DiagnosticService
 @inject DiagnosticMenuService MenuService
 @inject DiagnosticTcpServerService TcpServer
@@ -537,7 +538,7 @@
 
     </div> *@
 
-    <div class="back-container"
+  @*   <div class="back-container"
          style="@(
          MenuService.State.Keyboard.Visible &&
          (MenuService.State.Keyboard.Type == 10 ||
@@ -556,9 +557,20 @@
 
         </button>
 
-    </div>
+    </div> *@
 
-
+    @if (MenuService.State.Screen != MenuScreen.None &&
+    !MenuService.State.Keyboard.Visible &&
+    MenuService.State.Screen != MenuScreen.Message)
+    {
+        <div class="back-container">
+            <button type="button"
+                    class="diagnostic-button back-button"
+                    @onclick="Back">
+                Back
+            </button>
+        </div>
+    }
 
 </div>
 
@@ -1672,33 +1684,6 @@
     /* ========================================================= */
     /* MESSAGE */
     /* ========================================================= */
-
-    // private async Task ContinueMessage()
-    // {
-    //     try
-    //     {
-    //         Console.WriteLine();
-    //         Console.WriteLine(
-    //             "======== UI CONTINUE COMMAND =========");
-
-    //         Console.WriteLine(
-    //             "COMMAND = [0]");
-
-    //         await DiagnosticService.SendAsync("0");
-
-    //         Console.WriteLine(
-    //             "UI -> CONTINUE COMMAND SENT: [0]");
-
-    //         Console.WriteLine(
-    //             "=====================================");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine(
-    //             $"ContinueMessage ERROR: {ex}");
-    //     }
-    // }
-
 
     private async Task ContinueMessage()
     {

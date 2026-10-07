@@ -1,5 +1,7 @@
 using MyBlazorApp1.Components;
 using MyBlazorApp1.Services;
+using Microsoft.EntityFrameworkCore;
+using MyBlazorApp1.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,7 @@ builder.Services.AddSingleton<DiagnosticService>();
 
 builder.Services.AddSingleton<DiagnosticMenuService>();
 
+builder.Services.AddScoped<DiagDeviceService>();
 
 // =========================================================
 // SERIAL
@@ -28,7 +31,9 @@ builder.Services.AddSingleton<DiagnosticMenuService>();
 
 builder.Services.AddSingleton<SerialService>();
 
-
+builder.Services.AddDbContext<DiagDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DiagConnection")));
 var app = builder.Build();
 
 
