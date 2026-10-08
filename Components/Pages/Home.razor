@@ -6,6 +6,8 @@
 @implements IDisposable
 
 @inject DiagDeviceService DiagDeviceService
+@inject OtpService OtpService
+@inject DeviceAuthService DeviceAuthService
 @inject DiagnosticService DiagnosticService
 @inject DiagnosticMenuService MenuService
 @inject DiagnosticTcpServerService TcpServer
@@ -577,14 +579,26 @@
         Test Database
     </button>
 
+    <button @onclick="TestDeviceService">
+        Test Device Service
+    </button>
+
+    <button @onclick="TestPairingCode">
+        Test Pairing Code
+    </button>
+    <button @onclick="TestDeviceAuth">
+        Test Device Auth
+    </button>
+    <button @onclick="TestOtp">
+        Test OTP
+    </button>
+    <button @onclick="TestFirstLogin">
+        Test First Login
+    </button>
     @if (!string.IsNullOrEmpty(DatabaseTestResult))
     {
         <p>@DatabaseTestResult</p>
     }
-
-    <button @onclick="TestDeviceService">
-        Test Device Service
-    </button>
 </div>
 
 
@@ -1700,5 +1714,119 @@
 
         DatabaseTestResult =
             $"Serial: {serial} | Token saved: {saved} | Token verified: {verified}";
+    }
+
+    private async Task TestPairingCode()
+    {
+        const string serial = "TEST001";
+        const string pairingCode = "12345678";
+
+        bool saved = await DiagDeviceService.SetPairingCodeAsync(
+            serial,
+            pairingCode);
+
+        if (!saved)
+        {
+            DatabaseTestResult = "Pairing code could not be saved.";
+            return;
+        }
+
+        bool verifiedCorrect = await DiagDeviceService.VerifyPairingCodeAsync(
+            serial,
+            pairingCode);
+
+        bool verifiedWrong = await DiagDeviceService.VerifyPairingCodeAsync(
+            serial,
+            "99999999");
+
+        DatabaseTestResult =
+            $"Pairing saved: {saved} | " +
+            $"Correct code: {verifiedCorrect} | " +
+            $"Wrong code: {verifiedWrong}";
+    }
+    private async Task TestDeviceAuth()
+    {
+        const string serial = "TEST001";
+
+        bool correct = await DeviceAuthService.ValidateDeviceAsync(
+            serial,
+            "12345678");
+
+        bool wrong = await DeviceAuthService.ValidateDeviceAsync(
+            serial,
+            "99999999");
+
+        DatabaseTestResult =
+            $"Correct login: {correct} | Wrong login: {wrong}";
+    }
+    private async Task TestOtp()
+    {
+        const string serial = "TEST001";
+        const string purpose = "CustomerLogin";
+
+        string? otp = await OtpService.CreateOtpAsync(
+            serial,
+            purpose);
+
+        if (otp == null)
+        {
+            DatabaseTestResult = "OTP could not be created.";
+            return;
+        }
+
+        bool verified = await OtpService.VerifyOtpAsync(
+            serial,
+            purpose,
+            otp);
+
+        bool reused = await OtpService.VerifyOtpAsync(
+            serial,
+            purpose,
+            otp);
+
+        DatabaseTestResult =
+            $"OTP: {otp} | First verify: {verified} | Reuse: {reused}";
+    }
+    private async Task TestFirstLogin()
+    {
+        const string serial = "TEST001";
+        const string pairingCode = "12345678";
+
+        // Step 1: Generate OTP
+        string? otp = await DeviceAuthService.CreateLoginOtpAsync(
+            serial,
+            pairingCode);
+
+        if (otp == null)
+        {
+            DatabaseTestResult =
+                "Login failed: could not create OTP.";
+            return;
+        }
+
+        // Step 2: Complete first login
+        string? deviceToken =
+            await DeviceAuthService.CompleteFirstLoginAsync(
+                serial,
+                pairingCode,
+                otp);
+
+        if (deviceToken == null)
+        {
+            DatabaseTestResult =
+                "Login failed: DeviceToken was not created.";
+            return;
+        }
+
+        // Step 3: Verify the generated token
+        bool tokenValid =
+            await DeviceAuthService.ValidateDeviceTokenAsync(
+                serial,
+                deviceToken);
+
+        DatabaseTestResult =
+            $"OTP: {otp} | " +
+            $"Token created: {true} | " +
+            $"Token valid: {tokenValid}";
     }
 }

@@ -1,7 +1,9 @@
-using MyBlazorApp1.Components;
-using MyBlazorApp1.Services;
 using Microsoft.EntityFrameworkCore;
+using MyBlazorApp1.Api;
+using MyBlazorApp1.Components;
 using MyBlazorApp1.Data;
+using MyBlazorApp1.Services;
+using MyBlazorApp1.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,9 @@ builder.Services.AddSingleton<DiagnosticService>();
 builder.Services.AddSingleton<DiagnosticMenuService>();
 
 builder.Services.AddScoped<DiagDeviceService>();
+
+builder.Services.AddScoped<DeviceAuthService>();
+builder.Services.AddScoped<OtpService>();
 
 // =========================================================
 // SERIAL
@@ -62,5 +67,6 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapAuthEndpoints();
 
 app.Run();
