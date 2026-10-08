@@ -582,6 +582,9 @@
         <p>@DatabaseTestResult</p>
     }
 
+    <button @onclick="TestDeviceService">
+        Test Device Service
+    </button>
 </div>
 
 
@@ -1297,7 +1300,6 @@
             Console.WriteLine("UI -> CANCEL COMMANDS SENT: [-2-2-2]");
             Console.WriteLine("=====================================");
 
-            // خروج از صفحه Keyboard
             // MenuService.State.Keyboard.Visible = false;
 
             // await InvokeAsync(StateHasChanged);
@@ -1665,5 +1667,38 @@
 
         DatabaseTestResult =
             $"Found: {device.SerialNumber} - Phone: {device.OwnerPhoneNumber}";
+    }
+
+
+    private async Task TestDeviceService()
+    {
+        const string serial = "TEST001";
+
+        var device = await DiagDeviceService.GetBySerialNumberAsync(serial);
+
+        if (device == null)
+        {
+            DatabaseTestResult = "Device not found.";
+            return;
+        }
+
+        string token = DiagDeviceService.GenerateDeviceToken();
+
+        bool saved = await DiagDeviceService.SetDeviceTokenAsync(
+            serial,
+            token);
+
+        if (!saved)
+        {
+            DatabaseTestResult = "DeviceToken could not be saved.";
+            return;
+        }
+
+        bool verified = await DiagDeviceService.VerifyDeviceTokenAsync(
+            serial,
+            token);
+
+        DatabaseTestResult =
+            $"Serial: {serial} | Token saved: {saved} | Token verified: {verified}";
     }
 }

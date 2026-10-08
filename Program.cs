@@ -31,7 +31,11 @@ builder.Services.AddScoped<DiagDeviceService>();
 
 builder.Services.AddSingleton<SerialService>();
 
-builder.Services.AddDbContext<DiagDbContext>(options =>
+//builder.Services.AddDbContext<DiagDbContext>(options =>
+//    options.UseSqlServer(
+//        builder.Configuration.GetConnectionString("DiagConnection")));
+
+builder.Services.AddDbContextFactory<DiagDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DiagConnection")));
 var app = builder.Build();
