@@ -15,7 +15,7 @@ public partial class DiagInfo
 
     public string? DeviceTokenHash { get; set; }
 
-    public string? PairingCodeHash { get; set; }
+    //public string? PairingCodeHash { get; set; }
 
     public int AuthVersion { get; set; }
 

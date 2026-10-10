@@ -1720,49 +1720,50 @@
             $"Token verified: {verified}";
     }
 
-    private async Task TestPairingCode()
-    {
-        const string serial = "TEST001";
-        const string pairingCode = "12345678";
+    // private async Task TestPairingCode()
+    // {
+    //     const string serial = "TEST001";
+    //     const string pairingCode = "12345678";
 
-        bool saved = await DiagDeviceService.SetPairingCodeAsync(
-            serial,
-            pairingCode);
+    //     bool saved = await DiagDeviceService.SetPairingCodeAsync(
+    //         serial,
+    //         pairingCode);
 
-        if (!saved)
+    //     if (!saved)
+    //     {
+    //         DatabaseTestResult = "Pairing code could not be saved.";
+    //         return;
+    //     }
+
+    //     bool verifiedCorrect = await DiagDeviceService.VerifyPairingCodeAsync(
+    //         serial,
+    //         pairingCode);
+
+    //     bool verifiedWrong = await DiagDeviceService.VerifyPairingCodeAsync(
+    //         serial,
+    //         "99999999");
+
+    //     DatabaseTestResult =
+    //         $"Pairing saved: {saved} | " +
+    //         $"Correct code: {verifiedCorrect} | " +
+    //         $"Wrong code: {verifiedWrong}";
+    // }
+
+    private async Task TestDeviceAuth()
         {
-            DatabaseTestResult = "Pairing code could not be saved.";
-            return;
+            const string serial = "TEST001";
+            const string installationId = "TEST-INSTALLATION-001";
+
+
+            bool wrong = await DeviceAuthService.ValidateDeviceTokenAsync(
+                serial,
+                installationId,
+                "INVALID-TEST-TOKEN");
+
+            DatabaseTestResult =
+                $"Invalid token rejected: {!wrong}";
         }
 
-        bool verifiedCorrect = await DiagDeviceService.VerifyPairingCodeAsync(
-            serial,
-            pairingCode);
-
-        bool verifiedWrong = await DiagDeviceService.VerifyPairingCodeAsync(
-            serial,
-            "99999999");
-
-        DatabaseTestResult =
-            $"Pairing saved: {saved} | " +
-            $"Correct code: {verifiedCorrect} | " +
-            $"Wrong code: {verifiedWrong}";
-    }
-    private async Task TestDeviceAuth()
-    {
-        const string serial = "TEST001";
-
-        bool correct = await DeviceAuthService.ValidateDeviceAsync(
-            serial,
-            "12345678");
-
-        bool wrong = await DeviceAuthService.ValidateDeviceAsync(
-            serial,
-            "99999999");
-
-        DatabaseTestResult =
-            $"Correct login: {correct} | Wrong login: {wrong}";
-    }
     private async Task TestOtp()
     {
         const string serial = "TEST001";
@@ -1794,12 +1795,11 @@
     private async Task TestFirstLogin()
     {
         const string serial = "TEST001";
-        const string pairingCode = "12345678";
+        //const string pairingCode = "12345678";
 
         // Step 1: Generate OTP
         string? otp = await DeviceAuthService.CreateLoginOtpAsync(
-            serial,
-            pairingCode);
+            serial);
 
         if (otp == null)
         {
@@ -1812,7 +1812,6 @@
         string? deviceToken =
         await DeviceAuthService.CompleteFirstLoginAsync(
             "TEST001",
-            "12345678",
             otp,
             "TEST-INSTALLATION-ID");
 

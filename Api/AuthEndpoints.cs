@@ -16,7 +16,7 @@ public static class AuthEndpoints
                 DeviceAuthService authService) =>
             {
                 if (string.IsNullOrWhiteSpace(request.SerialNumber) ||
-                    string.IsNullOrWhiteSpace(request.PairingCode) ||
+                    //string.IsNullOrWhiteSpace(request.PairingCode) ||
                     string.IsNullOrWhiteSpace(request.InstallationId))
                 {
                     return Results.BadRequest(new
@@ -28,8 +28,7 @@ public static class AuthEndpoints
 
                 string? otp =
                     await authService.CreateLoginOtpAsync(
-                        request.SerialNumber,
-                        request.PairingCode);
+                        request.SerialNumber);
 
                 if (otp == null)
                 {
@@ -56,7 +55,7 @@ public static class AuthEndpoints
                 DeviceAuthService authService) =>
             {
                 if (string.IsNullOrWhiteSpace(request.SerialNumber) ||
-                    string.IsNullOrWhiteSpace(request.PairingCode) ||
+                    //string.IsNullOrWhiteSpace(request.PairingCode) ||
                     string.IsNullOrWhiteSpace(request.OtpCode) ||
                     string.IsNullOrWhiteSpace(request.InstallationId))
                 {
@@ -70,7 +69,7 @@ public static class AuthEndpoints
                 string? deviceToken =
                     await authService.CompleteFirstLoginAsync(
                         request.SerialNumber,
-                        request.PairingCode,
+                        //request.PairingCode,
                         request.OtpCode,
                         request.InstallationId);
 
@@ -171,7 +170,7 @@ public static class AuthEndpoints
     // ================================
     public record RequestOtpRequest(
         string SerialNumber,
-        string PairingCode,
+        //string PairingCode,
         string InstallationId);
 
 
@@ -180,7 +179,7 @@ public static class AuthEndpoints
     // ================================
     public record LoginRequest(
         string SerialNumber,
-        string PairingCode,
+        //string PairingCode,
         string OtpCode,
         string InstallationId);
     public record AutoLoginRequest(

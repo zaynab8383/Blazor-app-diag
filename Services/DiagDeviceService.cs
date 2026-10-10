@@ -211,66 +211,66 @@ public class DiagDeviceService
     // PAIRING CODE
     // =========================================================
 
-    public async Task<bool> SetPairingCodeAsync(
-        string serialNumber,
-        string pairingCode)
-    {
-        if (string.IsNullOrWhiteSpace(serialNumber) ||
-            string.IsNullOrWhiteSpace(pairingCode))
-        {
-            return false;
-        }
+    //public async Task<bool> SetPairingCodeAsync(
+    //    string serialNumber,
+    //    string pairingCode)
+    //{
+    //    if (string.IsNullOrWhiteSpace(serialNumber) ||
+    //        string.IsNullOrWhiteSpace(pairingCode))
+    //    {
+    //        return false;
+    //    }
 
-        serialNumber = serialNumber.Trim();
+    //    serialNumber = serialNumber.Trim();
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var device = await db.DiagInfos
-            .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
+    //    var device = await db.DiagInfos
+    //        .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
 
-        if (device == null)
-            return false;
+    //    if (device == null)
+    //        return false;
 
-        device.PairingCodeHash = HashSecret(pairingCode);
-        device.UpdatedAt = DateTime.UtcNow;
+    //    //device.PairingCodeHash = HashSecret(pairingCode);
+    //    device.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+    //    await db.SaveChangesAsync();
 
-        return true;
-    }
+    //    return true;
+    //}
 
-    public async Task<bool> VerifyPairingCodeAsync(
-        string serialNumber,
-        string pairingCode)
-    {
-        if (string.IsNullOrWhiteSpace(serialNumber) ||
-            string.IsNullOrWhiteSpace(pairingCode))
-        {
-            return false;
-        }
+    //public async Task<bool> VerifyPairingCodeAsync(
+    //    string serialNumber,
+    //    string pairingCode)
+    //{
+    //    if (string.IsNullOrWhiteSpace(serialNumber) ||
+    //        string.IsNullOrWhiteSpace(pairingCode))
+    //    {
+    //        return false;
+    //    }
 
-        serialNumber = serialNumber.Trim();
+    //    serialNumber = serialNumber.Trim();
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+    //    await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var device = await db.DiagInfos
-            .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
+    //    var device = await db.DiagInfos
+    //        .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
 
-        if (device == null)
-            return false;
+    //    if (device == null)
+    //        return false;
 
-        if (device.IsBlocked)
-            return false;
+    //    if (device.IsBlocked)
+    //        return false;
 
-        if (string.IsNullOrWhiteSpace(device.PairingCodeHash))
-            return false;
+    //    if (string.IsNullOrWhiteSpace(device.PairingCodeHash))
+    //        return false;
 
-        string hash = HashSecret(pairingCode);
+    //    string hash = HashSecret(pairingCode);
 
-        return CryptographicOperations.FixedTimeEquals(
-            Convert.FromHexString(device.PairingCodeHash),
-            Convert.FromHexString(hash));
-    }
+    //    return CryptographicOperations.FixedTimeEquals(
+    //        Convert.FromHexString(device.PairingCodeHash),
+    //        Convert.FromHexString(hash));
+    //}
 
     // =========================================================
     // AUTHENTICATION / TOKEN REVOCATION
@@ -441,7 +441,7 @@ public class DiagDeviceService
         if (device == null)
             return false;
 
-        device.PairingCodeHash = HashSecret(newPairingCode);
+        //device.PairingCodeHash = HashSecret(newPairingCode);
 
         // Token قبلی دیگر معتبر نباشد
         device.DeviceTokenHash = null;

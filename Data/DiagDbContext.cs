@@ -27,7 +27,7 @@ public partial class DiagDbContext : DbContext
             entity.Property(e => e.DeviceTokenHash).HasMaxLength(200);
             entity.Property(e => e.InstallationId).HasMaxLength(100);
             entity.Property(e => e.OwnerPhoneNumber).HasMaxLength(20);
-            entity.Property(e => e.PairingCodeHash).HasMaxLength(200);
+            //entity.Property(e => e.PairingCodeHash).HasMaxLength(200);
             entity.Property(e => e.SerialNumber).HasMaxLength(100);
         });
 
