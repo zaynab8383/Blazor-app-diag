@@ -15,7 +15,6 @@ public class DeviceAuthService
         _otpService = otpService;
     }
 
-
     public async Task<bool> ValidateDeviceAsync(
         string serialNumber,
         string pairingCode)
@@ -60,8 +59,12 @@ public class DeviceAuthService
     public async Task<string?> CompleteFirstLoginAsync(
         string serialNumber,
         string pairingCode,
-        string otpCode)
+        string otpCode,
+        string installationId)
     {
+        if (string.IsNullOrWhiteSpace(installationId))
+            return null;
+
         bool valid = await ValidateDeviceAsync(
             serialNumber,
             pairingCode);
@@ -80,21 +83,55 @@ public class DeviceAuthService
         string deviceToken =
             _deviceService.GenerateDeviceToken();
 
-        bool saved = await _deviceService.SetDeviceTokenAsync(
-            serialNumber,
-            deviceToken);
+        bool tokenSaved =
+            await _deviceService.SetDeviceTokenAsync(
+                serialNumber,
+                deviceToken);
 
-        if (!saved)
+        if (!tokenSaved)
+            return null;
+
+        bool installationSaved =
+            await _deviceService.SetInstallationIdAsync(
+                serialNumber,
+                installationId);
+
+        if (!installationSaved)
             return null;
 
         return deviceToken;
     }
 
     public async Task<bool> ValidateDeviceTokenAsync(
-        string serialNumber,
-        string deviceToken)
+    string serialNumber,
+    string installationId,
+    string deviceToken)
     {
         if (string.IsNullOrWhiteSpace(serialNumber))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(installationId))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(deviceToken))
+            return false;
+
+        return await _deviceService
+            .VerifyDeviceTokenAsync(
+                serialNumber,
+                installationId,
+                deviceToken);
+    }
+
+    public async Task<bool> AutoLoginAsync(
+    string serialNumber,
+    string installationId,
+    string deviceToken)
+    {
+        if (string.IsNullOrWhiteSpace(serialNumber))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(installationId))
             return false;
 
         if (string.IsNullOrWhiteSpace(deviceToken))
@@ -102,6 +139,36 @@ public class DeviceAuthService
 
         return await _deviceService.VerifyDeviceTokenAsync(
             serialNumber,
+            installationId,
             deviceToken);
+    }
+
+
+    public async Task<bool> LogoutAsync(
+    string serialNumber,
+    string installationId,
+    string deviceToken)
+    {
+        if (string.IsNullOrWhiteSpace(serialNumber))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(installationId))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(deviceToken))
+            return false;
+
+        // First make sure this is the currently
+        // registered installation and token.
+        bool valid = await _deviceService.VerifyDeviceTokenAsync(
+            serialNumber,
+            installationId,
+            deviceToken);
+
+        if (!valid)
+            return false;
+
+        return await _deviceService
+            .InvalidateAuthenticationAsync(serialNumber);
     }
 }

@@ -1687,6 +1687,7 @@
     private async Task TestDeviceService()
     {
         const string serial = "TEST001";
+        const string installationId = "TEST-INSTALLATION-ID";
 
         var device = await DiagDeviceService.GetBySerialNumberAsync(serial);
 
@@ -1710,10 +1711,13 @@
 
         bool verified = await DiagDeviceService.VerifyDeviceTokenAsync(
             serial,
+            installationId,
             token);
 
         DatabaseTestResult =
-            $"Serial: {serial} | Token saved: {saved} | Token verified: {verified}";
+            $"Serial: {serial} | " +
+            $"Token saved: {saved} | " +
+            $"Token verified: {verified}";
     }
 
     private async Task TestPairingCode()
@@ -1806,10 +1810,11 @@
 
         // Step 2: Complete first login
         string? deviceToken =
-            await DeviceAuthService.CompleteFirstLoginAsync(
-                serial,
-                pairingCode,
-                otp);
+        await DeviceAuthService.CompleteFirstLoginAsync(
+            "TEST001",
+            "12345678",
+            otp,
+            "TEST-INSTALLATION-ID");
 
         if (deviceToken == null)
         {
@@ -1820,9 +1825,10 @@
 
         // Step 3: Verify the generated token
         bool tokenValid =
-            await DeviceAuthService.ValidateDeviceTokenAsync(
-                serial,
-                deviceToken);
+        await DeviceAuthService.ValidateDeviceTokenAsync(
+            serial,
+            "TEST-INSTALLATION-ID",
+            deviceToken);
 
         DatabaseTestResult =
             $"OTP: {otp} | " +

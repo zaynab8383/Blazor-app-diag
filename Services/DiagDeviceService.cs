@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MyBlazorApp1.Data;
 using MyBlazorApp1.Models;
 
+
 namespace MyBlazorApp1.Services;
 
 public class DiagDeviceService
@@ -161,21 +162,25 @@ public class DiagDeviceService
     }
 
     public async Task<bool> VerifyDeviceTokenAsync(
-        string serialNumber,
-        string deviceToken)
+    string serialNumber,
+    string installationId,
+    string deviceToken)
     {
-        if (string.IsNullOrWhiteSpace(serialNumber) ||
-            string.IsNullOrWhiteSpace(deviceToken))
-        {
+        if (string.IsNullOrWhiteSpace(serialNumber))
             return false;
-        }
 
-        serialNumber = serialNumber.Trim();
+        if (string.IsNullOrWhiteSpace(installationId))
+            return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        if (string.IsNullOrWhiteSpace(deviceToken))
+            return false;
+
+        await using var db =
+            await _dbFactory.CreateDbContextAsync();
 
         var device = await db.DiagInfos
-            .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
+            .FirstOrDefaultAsync(x =>
+                x.SerialNumber == serialNumber);
 
         if (device == null)
             return false;
@@ -183,14 +188,23 @@ public class DiagDeviceService
         if (device.IsBlocked)
             return false;
 
+        // InstallationId must belong to this installation.
+        if (!string.Equals(
+                device.InstallationId,
+                installationId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(device.DeviceTokenHash))
             return false;
 
-        string hash = HashSecret(deviceToken);
+        string tokenHash = HashSecret(deviceToken);
 
         return CryptographicOperations.FixedTimeEquals(
             Convert.FromHexString(device.DeviceTokenHash),
-            Convert.FromHexString(hash));
+            Convert.FromHexString(tokenHash));
     }
 
     // =========================================================
