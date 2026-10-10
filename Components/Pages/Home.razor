@@ -575,7 +575,7 @@
     }
 
 
-    <button @onclick="TestDatabase">
+    @* <button @onclick="TestDatabase">
         Test Database
     </button>
 
@@ -594,7 +594,7 @@
     </button>
     <button @onclick="TestFirstLogin">
         Test First Login
-    </button>
+    </button> *@
     @if (!string.IsNullOrEmpty(DatabaseTestResult))
     {
         <p>@DatabaseTestResult</p>
