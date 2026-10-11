@@ -259,6 +259,10 @@ public class DiagnosticTcpServerService : IDisposable
     private async Task ReceiveLoopAsync(
         TcpClient client)
     {
+
+        Console.WriteLine(
+            $"ReceiveLoop started: {client.Client.RemoteEndPoint}");
+
         NetworkStream stream =
             client.GetStream();
 
