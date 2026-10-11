@@ -137,10 +137,7 @@
     {
         try
         {
-            // شروع TCP Server
             await TcpServer.StartAsync(9000);
-
-            // شروع پردازش Diagnostic
             DiagnosticService.Start();
 
             AddLog(
@@ -159,10 +156,7 @@
 
     private void StopServer()
     {
-        // توقف پردازش Diagnostic
         DiagnosticService.Stop();
-
-        // توقف TCP Server
         TcpServer.Stop();
 
         AddLog(
@@ -185,7 +179,6 @@
     {
         logs.Add(message);
 
-        // جلوگیری از بزرگ شدن بی‌نهایت لاگ
         if (logs.Count > 1000)
         {
             logs.RemoveAt(0);

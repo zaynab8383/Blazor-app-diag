@@ -108,7 +108,6 @@
     }
 </div> *@
 
-
 <PageTitle>دسترسی ریموت دیاگ</PageTitle>
 
 <div class="remote-page">
@@ -296,7 +295,6 @@
 
 <style>
 
-    /* جهت متن‌های فارسی */
     .login-heading,
     .login-heading h1,
     .login-heading p,
@@ -323,20 +321,17 @@
         text-align: right;
     }
 
-    /* جهت کلی صفحه و چیدمان کارت‌ها حفظ شود */
     .operator-page,
     .remote-page {
         direction: ltr;
     }
 
-    /* فیلدها: متن فارسی راست‌چین، مقادیر قابل‌ورود */
     .login-input,
     .remote-input {
         direction: rtl;
         text-align: right;
     }
 
-    /* کد تأیید و شماره سریال بهتر است چپ‌چین بمانند */
     .otp-input {
         direction: ltr;
         text-align: center;
@@ -820,7 +815,6 @@
         }
     }
 
-    /* فونت و جهت پایه */
     .remote-page,
     .remote-page button,
     .remote-page input {
@@ -831,7 +825,6 @@
         direction: rtl;
     }
 
-    /* عنوان اصلی و زیرعنوان */
     .remote-heading {
         direction: rtl;
     }
@@ -841,7 +834,6 @@
             text-align: right;
         }
 
-    /* عنوان و توضیحات بخش شناسایی دستگاه */
     .section-title {
         direction: rtl;
     }
@@ -866,40 +858,34 @@
         text-align: right;
     }
 
-    /* ترتیب آیکون و متن در بخش‌های عنوان */
     .remote-heading,
     .section-title,
     .session-heading {
         flex-direction: row;
     }
 
-    /* ورودی‌ها */
     .remote-input {
         direction: rtl;
         text-align: right;
     }
 
-    /* شماره سریال به صورت چپ‌چین */
     #remote-serial {
         direction: ltr;
         text-align: left;
     }
 
-    /* کد تأیید */
     .otp-input {
         direction: ltr;
         text-align: center;
         letter-spacing: 4px;
     }
 
-    /* متن دکمه‌ها و وضعیت‌ها */
     .remote-button,
     .remote-badge,
     .login-button {
         font-family: "Vazirmatn", Tahoma, sans-serif;
     }
 
-    /* در نمایشگر کوچک هم عنوان‌ها راست‌چین بمانند */
     @@media (max-width: 600px) {
         .remote-heading > div,
         .section-title > div {
