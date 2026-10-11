@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
-<PageTitle>دسترسی ریموت دیاگ</PageTitle>
+@* <PageTitle>دسترسی ریموت دیاگ</PageTitle>
 
 <div class="container mt-5" style="max-width: 600px;">
     <h3 class="mb-3">دسترسی ریموت دیاگ</h3>
@@ -106,7 +106,809 @@
             خروج از حساب اپراتور
         </button>
     }
+</div> *@
+
+
+<PageTitle>دسترسی ریموت دیاگ</PageTitle>
+
+<div class="remote-page">
+    <div class="remote-shell">
+        <header class="remote-header">
+            <div class="remote-heading">
+                <div class="remote-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="13" rx="2" />
+                        <path d="M8 21h8M12 17v4M8 10l2.5 2.5L16 7" />
+                    </svg>
+                </div>
+                <div>
+                    <h1>دسترسی ریموت دیاگ</h1>
+                    <p>مدیریت دسترسی اپراتور به دستگاه</p>
+                </div>
+            </div>
+
+            <div class="remote-badge">
+                <span class="remote-badge-dot"></span>
+                پنل اپراتور
+            </div>
+        </header>
+
+        @if (IsChecking)
+        {
+            <section class="remote-card checking-card">
+                <span class="remote-spinner"></span>
+                <h2>در حال بررسی دسترسی</h2>
+                <p>لطفاً تا تکمیل بررسی صبر کنید.</p>
+            </section>
+        }
+        else if (IsAuthenticated)
+        {
+            <section class="remote-card">
+                <div class="section-title">
+                    <span class="step-number">۱</span>
+                    <div>
+                        <h2>شناسایی دستگاه</h2>
+                        <p>شماره سریال دستگاه را وارد کنید.</p>
+                    </div>
+                </div>
+
+                <p class="remote-description">
+                    کد تأیید برای شماره مالک ثبت‌شده در سامانه ارسال خواهد شد.
+                </p>
+
+                <form @onsubmit="RequestOtp" @onsubmit:preventDefault>
+                    <div class="remote-field">
+                        <label for="remote-serial">شماره سریال دستگاه</label>
+                        <input id="remote-serial"
+                               class="remote-input"
+                               @bind="SerialNumber"
+                               autocomplete="off"
+                               placeholder="شماره سریال را وارد کنید"
+                               required />
+                    </div>
+
+                    <button class="remote-button primary-button"
+                            type="submit"
+                            disabled="@IsBusy">
+                        @if (IsBusy)
+                        {
+                            <span class="remote-spinner small-spinner"></span>
+                            <span>در حال ارسال درخواست...</span>
+                        }
+                        else
+                        {
+                            <span>درخواست کد تأیید</span>
+                            <span>→</span>
+                        }
+                    </button>
+                </form>
+
+                @if (OtpRequested)
+                {
+                    <div class="section-divider"></div>
+
+                    <div class="section-title">
+                        <span class="step-number">۲</span>
+                        <div>
+                            <h2>تأیید مالکیت</h2>
+                            <p>کد ارسال‌شده را وارد کنید.</p>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(MaskedPhone))
+                    {
+                        <div class="destination-panel">
+                            <span class="destination-label">شماره مقصد</span>
+                            <strong>@MaskedPhone</strong>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(DevelopmentOtp))
+                    {
+                        <div class="dev-notice">
+                            <strong>کد آزمایشی محیط توسعه</strong>
+                            <div class="dev-code">@DevelopmentOtp</div>
+                            <small>این کد از طریق پیامک ارسال نشده است.</small>
+                        </div>
+                    }
+
+                    <form @onsubmit="VerifyOtp" @onsubmit:preventDefault>
+                        <div class="remote-field">
+                            <label for="remote-otp">کد تأیید</label>
+                            <input id="remote-otp"
+                                   class="remote-input otp-input"
+                                   @bind="Code"
+                                   inputmode="numeric"
+                                   autocomplete="one-time-code"
+                                   maxlength="6"
+                                   placeholder="کد تأیید را وارد کنید"
+                                   required />
+                        </div>
+
+                        <button class="remote-button success-button"
+                                type="submit"
+                                disabled="@IsBusy">
+                            @if (IsBusy)
+                            {
+                                <span class="remote-spinner small-spinner"></span>
+                                <span>در حال بررسی...</span>
+                            }
+                            else
+                            {
+                                <span>تأیید کد و ایجاد نشست</span>
+                            }
+                        </button>
+                    </form>
+                }
+            </section>
+
+            @if (SessionReady)
+            {
+                <section class="session-card">
+                    <div class="session-heading">
+                        <div class="session-check">✓</div>
+                        <div>
+                            <h2>نشست ریموت ایجاد شد</h2>
+                            <p>اطلاعات نشست تأیید شده است.</p>
+                        </div>
+                    </div>
+
+                    <div class="session-details">
+                        <div class="session-detail">
+                            <span>شماره سریال</span>
+                            <strong>@SessionSerial</strong>
+                        </div>
+                        <div class="session-detail">
+                            <span>انقضا (UTC)</span>
+                            <strong>@SessionExpiresAt</strong>
+                        </div>
+                    </div>
+
+                    <div class="session-expiry">
+                        این نشست برای حداکثر ۳۰ دقیقه ایجاد شده است.
+                    </div>
+
+                    <p class="session-warning">
+                        برای جلوگیری از ارسال فرمان بدون کنترل دسترسی،
+                        اتصال این نشست به صفحهٔ عملیاتی دیاگ باید در مرحلهٔ بعد تکمیل شود.
+                    </p>
+                </section>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Message))
+            {
+                <div class="remote-message @(IsError ? "remote-error" : "remote-info")"
+                     role="status">
+                    <span class="message-indicator"></span>
+                    <span>@Message</span>
+                </div>
+            }
+
+            <button class="remote-button logout-button"
+                    @onclick="Logout"
+                    disabled="@IsBusy">
+                خروج از حساب اپراتور
+            </button>
+        }
+    </div>
 </div>
+
+<style>
+
+    /* جهت متن‌های فارسی */
+    .login-heading,
+    .login-heading h1,
+    .login-heading p,
+    .field-group label,
+    .status-message,
+    .remote-heading h1,
+    .remote-heading p,
+    .section-title h2,
+    .section-title p,
+    .remote-description,
+    .remote-field label,
+    .destination-panel,
+    .dev-notice,
+    .session-heading h2,
+    .session-heading p,
+    .session-detail span,
+    .session-detail strong,
+    .session-expiry,
+    .session-warning,
+    .remote-message,
+    .checking-card h2,
+    .checking-card p {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* جهت کلی صفحه و چیدمان کارت‌ها حفظ شود */
+    .operator-page,
+    .remote-page {
+        direction: ltr;
+    }
+
+    /* فیلدها: متن فارسی راست‌چین، مقادیر قابل‌ورود */
+    .login-input,
+    .remote-input {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* کد تأیید و شماره سریال بهتر است چپ‌چین بمانند */
+    .otp-input {
+        direction: ltr;
+        text-align: center;
+        letter-spacing: 4px;
+    }
+
+    #remote-serial {
+        direction: ltr;
+        text-align: left;
+    }
+
+    .remote-page {
+        direction: ltr;
+        min-height: 100vh;
+        box-sizing: border-box;
+        padding: 42px 18px;
+        background: radial-gradient(ellipse at 10% 5%, rgba(59, 130, 246, .10), transparent 35%), #f4f7fb;
+        color: #172033;
+    }
+
+    .remote-shell {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .remote-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .remote-heading {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .remote-icon {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 16px;
+    }
+
+        .remote-icon svg {
+            width: 29px;
+            height: 29px;
+        }
+
+    .remote-heading h1 {
+        margin: 0 0 7px;
+        font-size: 23px;
+        font-weight: 750;
+        color: #14213d;
+    }
+
+    .remote-heading p {
+        margin: 0;
+        color: #718096;
+        font-size: 13px;
+    }
+
+    .remote-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        color: #475467;
+        background: #fff;
+        border: 1px solid #e4e9f1;
+        border-radius: 999px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .remote-badge-dot {
+        width: 8px;
+        height: 8px;
+        background: #3b82f6;
+        border-radius: 50%;
+    }
+
+    .remote-card,
+    .session-card {
+        box-sizing: border-box;
+        padding: 30px;
+        background: #fff;
+        border: 1px solid #e5ebf3;
+        border-radius: 19px;
+        box-shadow: 0 12px 35px rgba(30, 55, 90, .055);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 21px;
+    }
+
+    .step-number {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        font-weight: 750;
+    }
+
+    .section-title h2,
+    .session-heading h2 {
+        margin: 0 0 5px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #172033;
+    }
+
+    .section-title p,
+    .session-heading p {
+        margin: 0;
+        color: #7b8798;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+
+    .remote-description {
+        margin: 0 0 23px;
+        color: #667085;
+        font-size: 13px;
+        line-height: 2;
+    }
+
+    .remote-field {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        margin-bottom: 19px;
+    }
+
+        .remote-field label {
+            font-size: 13px;
+            font-weight: 650;
+            color: #344054;
+        }
+
+    .remote-input {
+        width: 100%;
+        min-height: 49px;
+        box-sizing: border-box;
+        padding: 12px 14px;
+        direction: ltr;
+        text-align: left;
+        font: inherit;
+        font-size: 14px;
+        color: #172033;
+        background: #fbfcfe;
+        border: 1px solid #dce3ed;
+        border-radius: 11px;
+        outline: none;
+        transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+
+        .remote-input::placeholder {
+            color: #a0aabb;
+        }
+
+        .remote-input:focus {
+            background: #fff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, .12);
+        }
+
+    .otp-input {
+        letter-spacing: 2px;
+    }
+
+    .remote-button {
+        width: 100%;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 11px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform .18s, box-shadow .18s, opacity .18s;
+    }
+
+        .remote-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .remote-button:disabled {
+            opacity: .65;
+            cursor: wait;
+        }
+
+    .primary-button {
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+        .primary-button:hover:not(:disabled) {
+            box-shadow: 0 8px 20px rgba(37, 99, 235, .22);
+        }
+
+    .success-button {
+        color: #fff;
+        background: linear-gradient(135deg, #079455, #067647);
+    }
+
+        .success-button:hover:not(:disabled) {
+            box-shadow: 0 8px 20px rgba(7, 148, 85, .20);
+        }
+
+    .section-divider {
+        height: 1px;
+        margin: 28px 0;
+        background: #edf0f5;
+    }
+
+    .destination-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0 0 20px;
+        padding: 14px 16px;
+        background: #f8fafc;
+        border: 1px solid #e8edf4;
+        border-radius: 11px;
+    }
+
+    .destination-label {
+        color: #667085;
+        font-size: 12px;
+    }
+
+    .destination-panel strong {
+        color: #344054;
+        font-size: 14px;
+    }
+
+    .dev-notice {
+        margin: 0 0 20px;
+        padding: 15px;
+        color: #92400e;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 11px;
+        font-size: 13px;
+        line-height: 1.9;
+    }
+
+    .dev-code {
+        margin: 8px 0;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 4px;
+    }
+
+    .dev-notice small {
+        color: #a16207;
+    }
+
+    .session-card {
+        margin-top: 20px;
+        border-color: #b7ebce;
+        background: linear-gradient(180deg, #fff, #f7fef9);
+    }
+
+    .session-heading {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 23px;
+    }
+
+    .session-check {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #067647;
+        background: #dcfae6;
+        border: 1px solid #abefc6;
+        border-radius: 13px;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .session-details {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .session-detail {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        padding: 15px;
+        background: #fff;
+        border: 1px solid #e3f3e9;
+        border-radius: 12px;
+    }
+
+        .session-detail span {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .session-detail strong {
+            color: #172033;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+    .session-expiry {
+        margin-top: 14px;
+        padding: 12px 14px;
+        color: #067647;
+        background: #ecfdf3;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.9;
+    }
+
+    .session-warning {
+        margin: 15px 0 0;
+        color: #667085;
+        font-size: 12px;
+        line-height: 2;
+    }
+
+    .remote-message {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 14px 15px;
+        border: 1px solid;
+        border-radius: 11px;
+        font-size: 13px;
+        line-height: 1.9;
+        overflow-wrap: anywhere;
+    }
+
+    .remote-error {
+        color: #b42318;
+        background: #fff5f4;
+        border-color: #fecdca;
+    }
+
+    .remote-info {
+        color: #175cd3;
+        background: #eff8ff;
+        border-color: #b2ddff;
+    }
+
+    .message-indicator {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        margin-top: 8px;
+        background: currentColor;
+        border-radius: 50%;
+    }
+
+    .logout-button {
+        margin-top: 20px;
+        color: #475467;
+        background: #fff;
+        border: 1px solid #dce3ed;
+    }
+
+        .logout-button:hover:not(:disabled) {
+            background: #f8fafc;
+            border-color: #bfcada;
+        }
+
+    .checking-card {
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+        .checking-card h2 {
+            margin: 20px 0 8px;
+            font-size: 17px;
+        }
+
+        .checking-card p {
+            margin: 0;
+            color: #7b8798;
+            font-size: 13px;
+        }
+
+    .remote-spinner {
+        width: 27px;
+        height: 27px;
+        display: inline-block;
+        box-sizing: border-box;
+        border: 3px solid #dbeafe;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: remote-spin .7s linear infinite;
+    }
+
+    .small-spinner {
+        width: 15px;
+        height: 15px;
+        border-width: 2px;
+        border-color: rgba(255,255,255,.4);
+        border-top-color: #fff;
+    }
+
+    @@keyframes remote-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .remote-page {
+            padding: 25px 12px;
+        }
+
+        .remote-header {
+            align-items: flex-start;
+        }
+
+        .remote-heading h1 {
+            font-size: 19px;
+        }
+
+        .remote-icon {
+            width: 47px;
+            height: 47px;
+        }
+
+        .remote-card,
+        .session-card {
+            padding: 22px 18px;
+            border-radius: 16px;
+        }
+
+        .session-details {
+            grid-template-columns: 1fr;
+        }
+
+        .remote-badge {
+            margin-left: 62px;
+        }
+    }
+
+    /* فونت و جهت پایه */
+    .remote-page,
+    .remote-page button,
+    .remote-page input {
+        font-family: "Vazirmatn", Tahoma, sans-serif;
+    }
+
+    .remote-page {
+        direction: rtl;
+    }
+
+    /* عنوان اصلی و زیرعنوان */
+    .remote-heading {
+        direction: rtl;
+    }
+
+        .remote-heading > div {
+            direction: rtl;
+            text-align: right;
+        }
+
+    /* عنوان و توضیحات بخش شناسایی دستگاه */
+    .section-title {
+        direction: rtl;
+    }
+
+        .section-title > div {
+            direction: rtl;
+            text-align: right;
+        }
+
+    .remote-description,
+    .remote-field label,
+    .destination-panel,
+    .dev-notice,
+    .session-heading > div,
+    .session-detail,
+    .session-expiry,
+    .session-warning,
+    .remote-message,
+    .checking-card h2,
+    .checking-card p {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* ترتیب آیکون و متن در بخش‌های عنوان */
+    .remote-heading,
+    .section-title,
+    .session-heading {
+        flex-direction: row;
+    }
+
+    /* ورودی‌ها */
+    .remote-input {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* شماره سریال به صورت چپ‌چین */
+    #remote-serial {
+        direction: ltr;
+        text-align: left;
+    }
+
+    /* کد تأیید */
+    .otp-input {
+        direction: ltr;
+        text-align: center;
+        letter-spacing: 4px;
+    }
+
+    /* متن دکمه‌ها و وضعیت‌ها */
+    .remote-button,
+    .remote-badge,
+    .login-button {
+        font-family: "Vazirmatn", Tahoma, sans-serif;
+    }
+
+    /* در نمایشگر کوچک هم عنوان‌ها راست‌چین بمانند */
+    @@media (max-width: 600px) {
+        .remote-heading > div,
+        .section-title > div {
+            text-align: right;
+        }
+    }
+
+</style>
+
 
 @code {
     private bool IsChecking = true;
