@@ -1,10 +1,11 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-
+using System.Threading;
 namespace MyBlazorApp1.Services;
 
 public class DiagnosticTcpServerService : IDisposable
 {
+    private readonly SemaphoreSlim _startLock = new(1, 1);
     private TcpListener? _server;
     private TcpClient? _client;
     private NetworkStream? _stream;
@@ -52,52 +53,43 @@ public class DiagnosticTcpServerService : IDisposable
     // START
     // =========================================================
 
-    public async Task StartAsync(
-        int port = 9000)
-    {
-        if (IsRunning)
-        {
-            Console.WriteLine(
-                "TCP Server is already running.");
 
-            return;
-        }
+    public async Task StartAsync(int port = 9000)
+    {
+        await _startLock.WaitAsync();
 
         try
         {
-            _server =
-                new TcpListener(
-                    IPAddress.Any,
-                    port);
+            if (IsRunning)
+            {
+                Console.WriteLine("TCP Server is already running.");
+                return;
+            }
 
-            _server.Start();
+            var server = new TcpListener(IPAddress.Any, port);
 
-            IsRunning = true;
+            try
+            {
+                server.Start();
+                _server = server;
+                IsRunning = true;
+            }
+            catch
+            {
+                server.Stop();
+                throw;
+            }
 
             Console.WriteLine();
-            Console.WriteLine(
-                "=================================");
+            Console.WriteLine("=================================");
+            Console.WriteLine("       DIAGNOSTIC TCP SERVER");
+            Console.WriteLine("=================================");
+            Console.WriteLine($"TCP Server listening on port {port}");
+            Console.WriteLine("Waiting for client...");
+            Console.WriteLine("=================================");
 
-            Console.WriteLine(
-                "       DIAGNOSTIC TCP SERVER");
-
-            Console.WriteLine(
-                "=================================");
-
-            Console.WriteLine(
-                $"TCP Server listening on port {port}");
-
-            Console.WriteLine(
-                "Waiting for client...");
-
-            Console.WriteLine(
-                "=================================");
-
-            LogReceived?.Invoke(
-                $"TCP Server listening on port {port}");
-
-            LogReceived?.Invoke(
-                "Waiting for client...");
+            LogReceived?.Invoke($"TCP Server listening on port {port}");
+            LogReceived?.Invoke("Waiting for client...");
 
             _ = AcceptClientLoopAsync();
         }
@@ -105,17 +97,17 @@ public class DiagnosticTcpServerService : IDisposable
         {
             IsRunning = false;
 
-            Console.WriteLine(
-                $"TCP Server start error: {ex.Message}");
-
-            LogReceived?.Invoke(
-                $"Server start error: {ex.Message}");
+            Console.WriteLine($"TCP Server start error: {ex.Message}");
+            LogReceived?.Invoke($"Server start error: {ex.Message}");
 
             throw;
         }
-
-        await Task.CompletedTask;
+        finally
+        {
+            _startLock.Release();
+        }
     }
+
 
     // =========================================================
     // ACCEPT CLIENT

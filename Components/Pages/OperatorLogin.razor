@@ -73,9 +73,8 @@
 
             if (root.GetProperty("ok").GetBoolean())
             {
-                Navigation.NavigateTo(
-     "/",
-     forceLoad: true);
+                Navigation.NavigateTo("/operator/remote-diagnostic", forceLoad: true);
+                //Navigation.NavigateTo("/", forceLoad: true);
 
                 return;
             }

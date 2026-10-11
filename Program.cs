@@ -55,6 +55,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 // =========================================================
 // DATABASE
 // =========================================================

@@ -39,8 +39,7 @@ public class OtpService
         string code = RandomNumberGenerator
             .GetInt32(100000, 1000000)
             .ToString();
-
-        string codeHash = _deviceService.HashSecret(code);
+       
 
         await using var db = await _dbFactory.CreateDbContextAsync();
 
@@ -57,6 +56,8 @@ public class OtpService
         {
             oldOtp.UsedAt = DateTime.UtcNow;
         }
+
+        string codeHash = _deviceService.HashSecret(code);
 
         var otp = new Otp
         {
@@ -108,8 +109,14 @@ public class OtpService
 
         if (otp.ExpiresAt <= DateTime.UtcNow)
             return false;
+        Console.WriteLine(
+            $"OTP DEBUG: serial={serialNumber}, purpose={purpose}, codeLength={code.Length}");
 
         string codeHash = _deviceService.HashSecret(code);
+
+        Console.WriteLine($"OTP DEBUG: inputHash={codeHash}");
+        Console.WriteLine($"OTP DEBUG: storedHash={otp.CodeHash}");
+        //string codeHash = _deviceService.HashSecret(code);
 
         bool valid = CryptographicOperations.FixedTimeEquals(
             Convert.FromHexString(otp.CodeHash),

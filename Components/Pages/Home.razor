@@ -1,7 +1,9 @@
 ﻿@page "/"
+@attribute [Authorize(Roles = "Operator")]
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using MyBlazorApp1.Services
+@using Microsoft.AspNetCore.Authorization
 
 @implements IDisposable
 

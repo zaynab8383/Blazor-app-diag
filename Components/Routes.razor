@@ -1,4 +1,4 @@
-﻿@using static Microsoft.AspNetCore.Components.Web.RenderMode
+﻿@* @using static Microsoft.AspNetCore.Components.Web.RenderMode
 
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
@@ -7,6 +7,31 @@
         <FocusOnNavigate RouteData="routeData"
                          Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <p>صفحه موردنظر پیدا نشد.</p>
+        </LayoutView>
+    </NotFound>
+</Router> *@
+
+
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Components.Authorization
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData"
+                            DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeRouteView>
+
+        <FocusOnNavigate RouteData="routeData"
+                         Selector="h1" />
+    </Found>
+
     <NotFound>
         <LayoutView Layout="typeof(Layout.MainLayout)">
             <p>صفحه موردنظر پیدا نشد.</p>

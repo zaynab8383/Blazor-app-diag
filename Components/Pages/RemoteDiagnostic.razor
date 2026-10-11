@@ -217,6 +217,7 @@
         }
     }
 
+   
     private async Task VerifyOtp()
     {
         if (IsBusy)
@@ -239,20 +240,57 @@
 
             if (!root.GetProperty("ok").GetBoolean())
             {
-                Message = GetMessage(data, "کد نامعتبر یا منقضی شده است.");
+                Message = GetMessage(
+                    data,
+                    "کد نامعتبر یا منقضی شده است.");
+
                 IsError = true;
                 return;
             }
 
+            var token = ReadString(data, "sessionToken");
+            var serial = ReadString(data, "serialNumber");
+            var expiresAt = ReadString(data, "expiresAtUtc");
+
+            if (string.IsNullOrWhiteSpace(token) ||
+                string.IsNullOrWhiteSpace(serial))
+            {
+                Message = "نشست ایجاد شد، اما اطلاعات توکن ناقص است.";
+                IsError = true;
+                return;
+            }
+
+            // Save the remote diagnostic session in the browser.
+            // await JS.InvokeAsync<string>(
+            //     "operatorAuth.saveSession",
+            //     token,
+            //     serial,
+            //     expiresAt);
+
+            // SessionReady = true;
+            // SessionSerial = serial;
+            // SessionExpiresAt = expiresAt;
+            // Code = "";
+
+            // operatorAuth.verifyOtp already saves the session in sessionStorage.
             SessionReady = true;
-            SessionSerial = ReadString(data, "serialNumber");
-            SessionExpiresAt = ReadString(data, "expiresAtUtc");
+            SessionSerial = serial;
+            SessionExpiresAt = expiresAt;
             Message = "کد تأیید شد و نشست ایجاد شد.";
             Code = "";
+
+            Navigation.NavigateTo("/", forceLoad: true);
+
+            Navigation.NavigateTo("/", forceLoad: true);
+            // Navigate only after the session has been saved.
+            Navigation.NavigateTo("/", forceLoad: true);
         }
-        catch
+        catch (Exception ex)
         {
-            Message = "هنگام تأیید کد خطایی رخ داد.";
+            Console.WriteLine(
+                $"VerifyOtp ERROR: {ex}");
+
+            Message = $"خطا: {ex.Message}";
             IsError = true;
         }
         finally
