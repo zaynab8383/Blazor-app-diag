@@ -1,0 +1,107 @@
+﻿@page "/operator/login"
+
+
+@using System.Text.Json
+@inject IJSRuntime JS
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<PageTitle>ورود اپراتور</PageTitle>
+
+<div class="container mt-5" style="max-width: 440px;">
+    <h3 class="mb-4">ورود اپراتور</h3>
+
+    <form @onsubmit="Login" @onsubmit:preventDefault>
+        <div class="mb-3">
+            <label class="form-label">نام کاربری</label>
+            <input class="form-control"
+                   @bind="Username"
+                   autocomplete="username"
+                   required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">رمز عبور</label>
+            <input class="form-control"
+                   type="password"
+                   @bind="Password"
+                   autocomplete="current-password"
+                   required />
+        </div>
+
+        <button class="btn btn-primary w-100"
+                type="submit"
+                disabled="@IsBusy">
+            @(IsBusy ? "در حال بررسی..." : "ورود")
+        </button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <div class="alert @(IsError ? "alert-danger" : "alert-success") mt-3">
+            @Message
+        </div>
+    }
+</div>
+
+@code {
+    private string Username = "";
+    private string Password = "";
+    private string? Message;
+    private bool IsBusy;
+    private bool IsError;
+
+    private async Task Login()
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+        Message = null;
+        IsError = false;
+
+        try
+        {
+            var response = await JS.InvokeAsync<string>(
+                "operatorAuth.login",
+                Username.Trim(),
+                Password);
+
+            using var document = JsonDocument.Parse(response);
+            var root = document.RootElement;
+            var data = root.GetProperty("data");
+
+            if (root.GetProperty("ok").GetBoolean())
+            {
+                Navigation.NavigateTo(
+                    "/operator/remote-diagnostic",
+                    forceLoad: true);
+
+                return;
+            }
+
+            Message = GetMessage(data, "نام کاربری یا رمز عبور صحیح نیست.");
+            IsError = true;
+        }
+        catch (Exception)
+        {
+            Message = "ارتباط با سرور برقرار نشد. اتصال را بررسی کن.";
+            IsError = true;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static string GetMessage(JsonElement data, string fallback)
+    {
+        if (data.TryGetProperty("message", out var message) &&
+            message.ValueKind == JsonValueKind.String)
+        {
+            return message.GetString() ?? fallback;
+        }
+
+        return fallback;
+    }
+}

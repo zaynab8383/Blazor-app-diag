@@ -1,0 +1,296 @@
+﻿@page "/operator/remote-diagnostic"
+
+
+@using System.Text.Json
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>دسترسی ریموت دیاگ</PageTitle>
+
+<div class="container mt-5" style="max-width: 600px;">
+    <h3 class="mb-3">دسترسی ریموت دیاگ</h3>
+
+    @if (IsChecking)
+    {
+        <p>در حال بررسی ورود اپراتور...</p>
+    }
+    else if (IsAuthenticated)
+    {
+        <p class="text-muted">
+            ابتدا شماره سریال دستگاه را وارد کن. کد تأیید برای شماره
+            مالک ثبت‌شده در سامانه ارسال خواهد شد.
+        </p>
+
+        <form @onsubmit="RequestOtp" @onsubmit:preventDefault>
+            <div class="mb-3">
+                <label class="form-label">شماره سریال دستگاه</label>
+                <input class="form-control"
+                       @bind="SerialNumber"
+                       autocomplete="off"
+                       required />
+            </div>
+
+            <button class="btn btn-primary"
+                    type="submit"
+                    disabled="@IsBusy">
+                درخواست کد تأیید
+            </button>
+        </form>
+
+        @if (OtpRequested)
+        {
+            <hr class="my-4" />
+
+            <p>
+                درخواست کد برای شماره
+                <strong>@MaskedPhone</strong>
+                ثبت شد.
+            </p>
+
+            @if (!string.IsNullOrWhiteSpace(DevelopmentOtp))
+            {
+                <div class="alert alert-warning">
+                    <strong>فقط برای آزمایش در Development</strong>
+                    <div>کد آزمایشی: @DevelopmentOtp</div>
+                    <small>این کد از طریق پیامک ارسال نشده است.</small>
+                </div>
+            }
+
+            <form @onsubmit="VerifyOtp" @onsubmit:preventDefault>
+                <div class="mb-3">
+                    <label class="form-label">کد تأیید</label>
+                    <input class="form-control"
+                           @bind="Code"
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           maxlength="6"
+                           required />
+                </div>
+
+                <button class="btn btn-success"
+                        type="submit"
+                        disabled="@IsBusy">
+                    تأیید کد و ایجاد نشست
+                </button>
+            </form>
+        }
+
+        @if (SessionReady)
+        {
+            <div class="alert alert-success mt-4">
+                <h5>نشست ریموت ایجاد شد</h5>
+                <div>شماره سریال: @SessionSerial</div>
+                <div>انقضا (UTC): @SessionExpiresAt</div>
+                <p class="mb-0 mt-2">
+                    این نشست برای حداکثر ۳۰ دقیقه ایجاد شده است.
+                </p>
+            </div>
+
+            <p class="text-muted">
+                برای جلوگیری از ارسال فرمان بدون کنترل دسترسی،
+                اتصال این نشست به صفحهٔ عملیاتی دیاگ باید در مرحلهٔ بعد تکمیل شود.
+            </p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <div class="alert @(IsError ? "alert-danger" : "alert-info") mt-3">
+                @Message
+            </div>
+        }
+
+        <button class="btn btn-outline-secondary mt-3"
+                @onclick="Logout"
+                disabled="@IsBusy">
+            خروج از حساب اپراتور
+        </button>
+    }
+</div>
+
+@code {
+    private bool IsChecking = true;
+    private bool IsAuthenticated;
+    private bool IsBusy;
+    private bool IsError;
+    private bool OtpRequested;
+    private bool SessionReady;
+
+    private string SerialNumber = "";
+    private string Code = "";
+    private string? Message;
+    private string? MaskedPhone;
+    private string? DevelopmentOtp;
+    private string? SessionSerial;
+    private string? SessionExpiresAt;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            var response = await JS.InvokeAsync<string>("operatorAuth.me");
+
+            using var document = JsonDocument.Parse(response);
+            var root = document.RootElement;
+
+            if (!root.GetProperty("ok").GetBoolean())
+            {
+                Navigation.NavigateTo("/operator/login", forceLoad: true);
+                return;
+            }
+
+            IsAuthenticated = true;
+
+            var sessionJson =
+                await JS.InvokeAsync<string>("operatorAuth.getSession");
+
+            using var sessionDocument = JsonDocument.Parse(sessionJson);
+            var session = sessionDocument.RootElement;
+
+            var token = ReadString(session, "token");
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                SessionSerial = ReadString(session, "serialNumber");
+                SessionExpiresAt = ReadString(session, "expiresAtUtc");
+                SessionReady = true;
+            }
+        }
+        catch
+        {
+            Navigation.NavigateTo("/operator/login", forceLoad: true);
+            return;
+        }
+        finally
+        {
+            IsChecking = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RequestOtp()
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+        Message = null;
+        IsError = false;
+        OtpRequested = false;
+        SessionReady = false;
+        DevelopmentOtp = null;
+        MaskedPhone = null;
+
+        try
+        {
+            var response = await JS.InvokeAsync<string>(
+                "operatorAuth.requestOtp",
+                SerialNumber.Trim());
+
+            using var document = JsonDocument.Parse(response);
+            var root = document.RootElement;
+            var data = root.GetProperty("data");
+
+            if (!root.GetProperty("ok").GetBoolean())
+            {
+                Message = GetMessage(data, "درخواست کد تأیید ناموفق بود.");
+                IsError = true;
+                return;
+            }
+
+            OtpRequested = true;
+            MaskedPhone = ReadString(data, "destination");
+            DevelopmentOtp = ReadString(data, "developmentOtp");
+            Message = ReadString(data, "message");
+        }
+        catch
+        {
+            Message = "ارتباط با سرور برقرار نشد.";
+            IsError = true;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task VerifyOtp()
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+        Message = null;
+        IsError = false;
+
+        try
+        {
+            var response = await JS.InvokeAsync<string>(
+                "operatorAuth.verifyOtp",
+                SerialNumber.Trim(),
+                Code.Trim());
+
+            using var document = JsonDocument.Parse(response);
+            var root = document.RootElement;
+            var data = root.GetProperty("data");
+
+            if (!root.GetProperty("ok").GetBoolean())
+            {
+                Message = GetMessage(data, "کد نامعتبر یا منقضی شده است.");
+                IsError = true;
+                return;
+            }
+
+            SessionReady = true;
+            SessionSerial = ReadString(data, "serialNumber");
+            SessionExpiresAt = ReadString(data, "expiresAtUtc");
+            Message = "کد تأیید شد و نشست ایجاد شد.";
+            Code = "";
+        }
+        catch
+        {
+            Message = "هنگام تأیید کد خطایی رخ داد.";
+            IsError = true;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            await JS.InvokeAsync<string>("operatorAuth.logout");
+        }
+        catch
+        {
+            // Navigate away even if the server cannot be reached.
+        }
+
+        Navigation.NavigateTo("/operator/login", forceLoad: true);
+    }
+
+    private static string? ReadString(JsonElement element, string property)
+    {
+        if (element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(property, out var value) &&
+            value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString();
+        }
+
+        return null;
+    }
+
+    private static string GetMessage(JsonElement data, string fallback)
+    {
+        return ReadString(data, "message")
+            ?? ReadString(data, "title")
+            ?? fallback;
+    }
+}

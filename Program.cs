@@ -3,6 +3,7 @@ using MyBlazorApp1.Api;
 using MyBlazorApp1.Components;
 using MyBlazorApp1.Data;
 using MyBlazorApp1.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,38 @@ builder.Services.AddSingleton<SerialService>();
 builder.Services.AddScoped<DiagDeviceService>();
 builder.Services.AddScoped<DeviceAuthService>();
 builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<OperatorAuthService>();
 
+builder.Services
+    .AddAuthentication(
+        CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "__Host-MyBlazorOperator";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy =
+            CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.SlidingExpiration = false;
+
+        // API requests should return status codes, not login redirects.
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode =
+                StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode =
+                StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+
+builder.Services.AddAuthorization();
 // =========================================================
 // DATABASE
 // =========================================================
@@ -37,10 +69,40 @@ builder.Services.AddDbContextFactory<DiagDbContext>(options =>
 
 var app = builder.Build();
 
+
+
+
+
+var resetUsername = app.Configuration["OperatorPasswordReset:Username"];
+var resetPassword = app.Configuration["OperatorPasswordReset:NewPassword"];
+
+
+
 // =========================================================
 // HTTP REQUEST PIPELINE
 // =========================================================
 
+
+
+var bootstrapUsername =
+    app.Configuration["OperatorBootstrap:Username"];
+
+var bootstrapPassword =
+    app.Configuration["OperatorBootstrap:Password"];
+
+if (!string.IsNullOrWhiteSpace(bootstrapUsername) &&
+    !string.IsNullOrWhiteSpace(bootstrapPassword))
+{
+    using var scope = app.Services.CreateScope();
+
+    var operatorAuthService =
+        scope.ServiceProvider
+            .GetRequiredService<OperatorAuthService>();
+
+    await operatorAuthService.EnsureInitialOperatorAsync(
+        bootstrapUsername,
+        bootstrapPassword);
+}
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler(
@@ -52,6 +114,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 // =========================================================
@@ -67,6 +131,7 @@ app.MapRazorComponents<App>()
 
 // Existing OTP and login endpoints
 app.MapAuthEndpoints();
+app.MapOperatorEndpoints();
 
 // Validate a saved device token
 app.MapPost("/api/auth/validate-token",
