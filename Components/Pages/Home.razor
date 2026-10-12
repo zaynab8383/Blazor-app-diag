@@ -98,13 +98,17 @@
                 <button type="button"
                         class="tcp-button stop-button"
                         @onclick="StopTcpServer">
-
+                            
                     Stop TCP Server
 
                 </button>
             }
 
         </div>
+
+        @* <button class="btn btn-warning" @onclick="SendMinusElevenAsync">
+            ارسال دستور -11
+        </button> *@
 
     </div>
 
@@ -1355,5 +1359,22 @@
 
         TcpServer.LogReceived -=
             OnTcpLogReceived;
+    }
+    private async Task SendMinusElevenAsync()
+    {
+        try
+        {
+            Console.WriteLine("========== TEST -11 ==========");
+            Console.WriteLine("Sending command: -11");
+
+            await DiagnosticService.SendAsync("-11");
+
+            Console.WriteLine("Command sent successfully.");
+            Console.WriteLine("==============================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending -11: {ex}");
+        }
     }
 }
