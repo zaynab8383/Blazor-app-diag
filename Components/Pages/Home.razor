@@ -98,7 +98,7 @@
                 <button type="button"
                         class="tcp-button stop-button"
                         @onclick="StopTcpServer">
-                            
+
                     Stop TCP Server
 
                 </button>
@@ -106,16 +106,15 @@
 
         </div>
 
-        @* <button class="btn btn-warning" @onclick="SendMinusElevenAsync">
-            ارسال دستور -11
-        </button> *@
-
     </div>
 
 
     <!-- ========================================================= -->
     <!-- KEYBOARD -->
     <!-- ========================================================= -->
+   
+
+
     @if (MenuService.State.Keyboard.Visible)
     {
         <div class="keyboard-panel">
@@ -125,88 +124,12 @@
             </h2>
 
             <input class="keyboard-input"
-                   @bind="MenuService.State.Keyboard.Value"
-                   readonly />
-
-            @if (MenuService.State.Keyboard.Mode == "Letters")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in LetterKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
-
-            @if (MenuService.State.Keyboard.Mode == "Numbers")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in NumberKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
-
-            @if (MenuService.State.Keyboard.Mode == "Characters")
-            {
-                <div class="keyboard-grid">
-
-                    @foreach (var key in CharacterKeys)
-                    {
-                        <button type="button"
-                                class="key-button"
-                                @onclick="() => KeyboardKey(key)">
-
-                            @key
-
-                        </button>
-                    }
-
-                </div>
-            }
+                   type="@(MenuService.State.Keyboard.Type == 13 ? "password" : "text")"
+                   value="@MenuService.State.Keyboard.Value"
+                   @oninput="KeyboardInputChanged"
+                   autofocus />
 
             <div class="keyboard-actions">
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardNumbers">
-
-                    123
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardCharacters">
-
-                    کاراکترها
-
-                </button>
-
-                <button type="button"
-                        class="keyboard-action"
-                        @onclick="KeyboardDelete">
-
-                    DEL
-
-                </button>
 
                 <button type="button"
                         class="keyboard-action"
@@ -230,6 +153,7 @@
     }
 
 
+
     <!-- ========================================================= -->
     <!-- BOX PAGE -->
     <!-- ========================================================= -->
@@ -245,7 +169,7 @@
             {
                 <button type="button"
                         class="diagnostic-button"
-                        @onclick="() => SelectMenuItem(item.Index)">
+                        @onclick="() => SelectMenuItem(item)">
 
                     @item.Text
 
@@ -259,7 +183,7 @@
     <!-- ========================================================= -->
     <!-- SOFTWARE LIST -->
     <!-- ========================================================= -->
-    @if (MenuService.State.Screen == MenuScreen.SoftwareList)
+    @* @if (MenuService.State.Screen == MenuScreen.SoftwareList)
     {
         <div class="software-page">
 
@@ -275,6 +199,64 @@
                         @item.Text
                     </div>
                 }
+
+            </div>
+
+        </div>
+    } *@
+
+
+
+    @if (MenuService.State.Screen == MenuScreen.SoftwareList)
+    {
+        <div class="software-page">
+
+            <div class="software-header">
+                @MenuService.State.Header
+            </div>
+
+            <div class="software-content">
+
+                @foreach (var item in MenuService.GetCurrentSoftwarePageItems())
+                {
+                    <button type="button"
+                            class="software-row @(item.Selected ? "software-row-selected" : "")"
+                            @onclick="() => SelectSoftwareItem(item)">
+
+                        <span class="software-index">
+                            @item.Index
+                        </span>
+
+                        <span class="software-name">
+                            @item.Text
+                        </span>
+
+                    </button>
+                }
+
+            </div>
+
+            <div class="software-navigation">
+
+                <button type="button"
+                        class="software-nav-button"
+                        @onclick="SoftwarePageUp"
+                        disabled="@(MenuService.State.SoftwarePage == 0)">
+                    UP
+                </button>
+
+                <div class="software-page-number">
+                    Page @(MenuService.State.SoftwarePage + 1)
+                    /
+                    @MenuService.GetSoftwarePageCount()
+                </div>
+
+                <button type="button"
+                        class="software-nav-button"
+                        @onclick="SoftwarePageDown"
+                        disabled="@(MenuService.State.SoftwarePage >= MenuService.GetSoftwarePageCount() - 1)">
+                    DOWN
+                </button>
 
             </div>
 
@@ -307,6 +289,7 @@
 
         </div>
     }
+
 
 
     <!-- ========================================================= -->
@@ -345,6 +328,7 @@
     <!-- ========================================================= -->
     <!-- SELECT PAGE -->
     <!-- ========================================================= -->
+
     @if (MenuService.State.Screen == MenuScreen.SelectPage)
     {
         <div class="diagnostic-panel">
@@ -360,8 +344,8 @@
                     <input type="checkbox"
                            checked="@item.Checked"
                            @onchange="e => SetCheckBox(
-                                                   item.Index,
-                                                   e.Value is bool checkedValue && checkedValue)" />
+                                               item.Index,
+                                               e.Value is bool checkedValue && checkedValue)" />
 
 <span>
                         @item.Text
@@ -370,19 +354,46 @@
                 </div>
             }
 
+            <button type="button"
+                    class="diagnostic-button"
+                    @onclick="ConfirmParameterSelection">
+
+                OK
+
+            </button>
+
         </div>
     }
 
 
-    <!-- ========================================================= -->
-    <!-- PARAMETERS -->
-    <!-- ========================================================= -->
+
+
     @if (MenuService.State.Screen == MenuScreen.Parameters)
     {
         <div class="parameters-page">
 
             <div class="parameters-header">
                 @MenuService.State.Header
+            </div>
+
+            <div class="parameter-navigation">
+
+                <button type="button"
+                        class="parameter-nav-button"
+                        @onclick="ParameterUp">
+
+                    UP
+
+                </button>
+
+                <button type="button"
+                        class="parameter-nav-button"
+                        @onclick="ParameterDown">
+
+                    DOWN
+
+                </button>
+
             </div>
 
             <div class="parameters-table-wrapper">
@@ -406,8 +417,8 @@
                         @foreach (var parameter in MenuService.State.Parameters)
                         {
                             <tr class="@(parameter.IsActive
-                                                                ? "parameter-active"
-                                                                : "parameter-inactive")">
+                                                                                    ? "parameter-active"
+                                                                                    : "parameter-inactive")">
 
                                 <td>
                                     @parameter.Index
@@ -440,6 +451,7 @@
 
         </div>
     }
+
 
 
     <!-- ========================================================= -->
@@ -508,29 +520,171 @@
         </div>
     }
 
-
     <!-- ========================================================= -->
     <!-- BACK -->
     <!-- ========================================================= -->
-    @if (MenuService.State.Screen != MenuScreen.None)
-    {
-        <div class="back-container">
 
-            <button type="button"
-                    class="diagnostic-button back-button"
-                    @onclick="Back">
+    @* <div class="back-container"
+         style="@(MenuService.State.Screen != MenuScreen.None
+                        ? "visibility: visible;"
+                        : "visibility: hidden;")">
 
-                Back
+        <button type="button"
+                class="diagnostic-button back-button"
+                @onclick="Back">
 
-            </button>
+            Back
 
-        </div>
-    }
+        </button>
+
+    </div> *@
+
+    <div class="back-container"
+         style="@(
+         MenuService.State.Keyboard.Visible &&
+         (MenuService.State.Keyboard.Type == 10 ||
+          MenuService.State.Keyboard.Type == 11 ||
+          MenuService.State.Keyboard.Type == 12 ||
+          MenuService.State.Keyboard.Type == 13)
+             ? "visibility: hidden;"
+             : "visibility: visible;"
+         )">
+
+        <button type="button"
+                class="diagnostic-button back-button"
+                @onclick="Back">
+
+            Back
+
+        </button>
+
+    </div>
+
+
 
 </div>
 
 
 <style>
+
+
+    .software-page {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .software-header {
+        font-size: 22px;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+
+    .software-content {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .software-row {
+        width: 100%;
+        min-height: 45px;
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        padding: 8px 12px;
+        text-align: left;
+        font-size: 16px;
+    }
+
+        .software-row:hover {
+            background: #f0f0f0;
+        }
+
+    .software-row-selected {
+        background: lightblue;
+        border: 2px solid #2196f3;
+    }
+
+    .software-index {
+        width: 45px;
+        font-weight: bold;
+        text-align: center;
+        margin-right: 10px;
+    }
+
+    .software-name {
+        flex: 1;
+        overflow-wrap: anywhere;
+    }
+
+    .software-navigation {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 15px;
+        gap: 10px;
+    }
+
+    .software-nav-button {
+        flex: 1;
+        min-height: 50px;
+        border: 1px solid #aaa;
+        border-radius: 6px;
+        background: #eee;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+        .software-nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+    .software-page-number {
+        min-width: 100px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .parameter-navigation {
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+        border-bottom: 1px solid #999;
+    }
+
+    .parameter-nav-button {
+        flex: 1;
+        height: 55px;
+        border: none;
+        border-right: 1px solid #999;
+        background: #eee;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+        .parameter-nav-button:last-child {
+            border-right: none;
+        }
+
+        .parameter-nav-button:hover {
+            background: #ddd;
+        }
+
+        .parameter-nav-button:active {
+            background: #ccc;
+        }
+
 
     .diagnostic-container {
         width: 100%;
@@ -833,21 +987,21 @@
         direction: ltr;
     }
 
-    .keyboard-grid {
+    /* .keyboard-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         gap: 8px;
         margin-bottom: 15px;
-    }
+    } */
 
-    .key-button {
+  /*   .key-button {
         padding: 12px;
         border: 1px solid #aaa;
         border-radius: 5px;
         background: #eee;
         cursor: pointer;
         font-size: 16px;
-    }
+    } */
 
         .key-button:hover {
             background: #ddd;
@@ -902,32 +1056,53 @@
 
 @code
 {
-    private readonly string[] LetterKeys =
+    private void SoftwarePageUp()
     {
-        "A", "B", "C", "D", "E", "F",
-        "G", "H", "I", "J", "K", "L",
-        "M", "N", "O", "P", "Q", "R",
-        "S", "T", "U", "V", "W", "X",
-        "Y", "Z"
-    };
+        MenuService.SoftwarePageUp();
+    }
 
-    private readonly string[] NumberKeys =
+    private void SoftwarePageDown()
     {
-        "1", "2", "3",
-        "4", "5", "6",
-        "7", "8", "9",
-        "0"
-    };
+        MenuService.SoftwarePageDown();
+    }
 
-    private readonly string[] CharacterKeys =
+    private async Task SelectSoftwareItem(MenuItem item)
     {
-        ".", ",", "-", "_",
-        "/", "\\", "@", "#",
-        "(", ")", "+", "*",
-        ":", ";", "!", "?",
-        " "
-    };
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("========== FILE SELECT ==========");
+            Console.WriteLine($"INDEX = [{item.Index}]");
+            Console.WriteLine($"FILE = [{item.Text}]");
+            Console.WriteLine("=================================");
 
+            foreach (var file in MenuService.State.Items)
+            {
+                file.Selected = file.Index == item.Index;
+            }
+
+            MenuService.State.SelectedIndex = item.Index;
+
+
+
+            int commandIndex = item.Index % MenuState.SoftwarePageSize;
+
+            await DiagnosticService.SendAsync(
+                commandIndex.ToString());
+
+
+            Console.WriteLine(
+                $"UI -> FILE INDEX SENT: [{item.Index}]");
+
+            Console.WriteLine(
+                "=================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"SelectSoftwareItem ERROR: {ex}");
+        }
+    }
 
     /* ========================================================= */
     /* TCP SERVER */
@@ -1090,112 +1265,471 @@
     /* KEYBOARD */
     /* ========================================================= */
 
-    private void KeyboardKey(string key)
+    // private void KeyboardKey(string key)
+    // {
+    //     MenuService.State.Keyboard.Value += key;
+
+    //     Console.WriteLine(
+    //         $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardNumbers()
+    // {
+    //     MenuService.State.Keyboard.Mode = "Numbers";
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardCharacters()
+    // {
+    //     MenuService.State.Keyboard.Mode = "Characters";
+
+    //     StateHasChanged();
+    // }
+
+
+    // private void KeyboardDelete()
+    // {
+    //     string value =
+    //         MenuService.State.Keyboard.Value;
+
+    //     if (!string.IsNullOrEmpty(value))
+    //     {
+    //         MenuService.State.Keyboard.Value =
+    //             value[..^1];
+    //     }
+
+    //     StateHasChanged();
+    // }
+
+
+    // private async Task KeyboardCancel()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD CANCEL ==========");
+
+    //         Console.WriteLine(
+    //             "COMMAND = [-10]");
+
+    //         await DiagnosticService.SendAsync("-10");
+
+    //         Console.WriteLine(
+    //             "UI -> KEYBOARD CANCEL SENT: [-10]");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+
+    //         Console.WriteLine(
+    //             "=====================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD CANCEL ERROR: {ex}");
+    //     }
+    // }
+
+
+
+
+
+
+    private async Task KeyboardCancel()
     {
-        MenuService.State.Keyboard.Value += key;
-
-        Console.WriteLine(
-            $"KEYBOARD VALUE = [{MenuService.State.Keyboard.Value}]");
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardNumbers()
-    {
-        MenuService.State.Keyboard.Mode = "Numbers";
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardCharacters()
-    {
-        MenuService.State.Keyboard.Mode = "Characters";
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardDelete()
-    {
-        string value =
-            MenuService.State.Keyboard.Value;
-
-        if (!string.IsNullOrEmpty(value))
-        {
-            MenuService.State.Keyboard.Value =
-                value[..^1];
-        }
-
-        StateHasChanged();
-    }
-
-
-    private void KeyboardCancel()
-    {
-        MenuService.State.Keyboard.Visible = false;
-
-        MenuService.State.Screen =
-            MenuService.State.Keyboard.PreviousScreen;
-
-        StateHasChanged();
-    }
-
-
-    private async Task KeyboardEnter()
-    {
-        string value =
-            MenuService.State.Keyboard.Value;
-
-        if (string.IsNullOrEmpty(value))
-            return;
-
         try
         {
             Console.WriteLine();
-            Console.WriteLine(
-                "========== KEYBOARD ENTER ==========");
+            Console.WriteLine("========== KEYBOARD CANCEL ==========");
 
-            Console.WriteLine(
-                $"UI -> KEYBOARD COMMAND: [{value}]");
+            // -2 -2 -2
+            await DiagnosticService.SendAsync("-2-2-2");
+            Console.WriteLine("UI -> CANCEL COMMANDS SENT: [-2-2-2]");
+            Console.WriteLine("=====================================");
 
-            await DiagnosticService.SendAsync(value);
+            // خروج از صفحه Keyboard
+            // MenuService.State.Keyboard.Visible = false;
 
-            Console.WriteLine(
-                $"UI -> KEYBOARD COMMAND SENT: [{value}]");
+            // await InvokeAsync(StateHasChanged);
+            MenuService.State.Keyboard.Visible = false;
 
+            MenuService.State.Screen =
+                MenuService.State.Keyboard.PreviousScreen;
+
+            await InvokeAsync(StateHasChanged);
+
+
+        }
+        catch (Exception ex)
+        {
             Console.WriteLine(
-                "====================================");
+                $"KEYBOARD CANCEL ERROR: {ex}");
 
             MenuService.State.Keyboard.Visible = false;
 
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+
+
+    // private async Task KeyboardEnter()
+    // {
+    //     string value =
+    //         MenuService.State.Keyboard.Value;
+
+    //     if (string.IsNullOrEmpty(value))
+    //         return;
+
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine(
+    //             "========== KEYBOARD ENTER ==========");
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD COMMAND: [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD COMMAND SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "====================================");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD TCP ERROR: {ex}");
+    //     }
+    // }
+
+    // private async Task KeyboardEnter()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD ENTER ==========");
+    //         Console.WriteLine(
+    //             $"VALUE = [{MenuService.State.Keyboard.Value}]");
+
+    //         -1 -1 -1
+    //         await DiagnosticService.SendAsync("-1-1-1");
+
+    //         Console.WriteLine("UI -> ENTER COMMANDS SENT: [-1-1-1]");
+    //         Console.WriteLine("===================================");
+
+    //         خروج از صفحه Keyboard
+    //         MenuService.State.Keyboard.Visible = false;
+    //         MenuService.State.Screen =
+    //             MenuService.State.Keyboard.PreviousScreen;
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD ENTER ERROR: {ex}");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
+
+
+
+    // private async Task KeyboardEnter()
+    // {
+    //     try
+    //     {
+    //         string value =
+    //             MenuService.State.Keyboard.Value ?? "";
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD ENTER ==========");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         if (MenuService.State.Keyboard.Type == 11)
+    //         {
+    //             if (value.Length != 4)
+    //             {
+    //                 Console.WriteLine(
+    //                     "PASSWORD ERROR -> PASSWORD MUST BE EXACTLY 4 CHARACTERS");
+
+    //                 Console.WriteLine(
+    //                     "===================================");
+
+    //                 await InvokeAsync(StateHasChanged);
+    //                 return;
+    //             }
+
+    //             فقط 0-9 و . و - مجاز هستند
+    //             foreach (char c in value)
+    //             {
+    //                 if (!char.IsDigit(c) &&
+    //                     c != '.' &&
+    //                     c != '-')
+    //                 {
+    //                     Console.WriteLine(
+    //                         $"PASSWORD ERROR -> INVALID CHARACTER [{c}]");
+
+    //                     Console.WriteLine(
+    //                         "===================================");
+
+    //                     await InvokeAsync(StateHasChanged);
+    //                     return;
+    //                 }
+    //             }
+    //         }
+
+    //         اگر معتبر بود، ENTER واقعی را بفرست
+    //         await DiagnosticService.SendAsync("-1-1-1");
+
+    //         Console.WriteLine(
+    //             "UI -> ENTER COMMANDS SENT: [-1-1-1]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+
+    //         MenuService.State.Keyboard.Visible = false;
+
+    //         MenuService.State.Screen =
+    //             MenuService.State.Keyboard.PreviousScreen;
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD ENTER ERROR: {ex}");
+
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
+
+
+    private async Task KeyboardEnter()
+    {
+        try
+        {
+            string value =
+                MenuService.State.Keyboard.Value?.Trim() ?? "";
+
+            Console.WriteLine();
+            Console.WriteLine("========== KEYBOARD ENTER ==========");
+            Console.WriteLine($"CURRENT KEYBOARD VALUE = [{value}]");
+
+
+            await Task.Delay(200);
+
+            Console.WriteLine(
+                "KEYBOARD EXIT COMMAND = [-1-1-1]");
+
+            await DiagnosticService.SendAsync("-1-1-1");
+
+            Console.WriteLine(
+                "UI -> KEYBOARD EXIT COMMAND SENT: [-1-1-1]");
+
+            Console.WriteLine(
+                "===================================");
+        }
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"KEYBOARD TCP ERROR: {ex}");
+                $"KeyboardEnter ERROR: {ex}");
+        }
+    }
+
+    // private async Task KeyboardInputChanged(ChangeEventArgs e)
+    // {
+    //     try
+    //     {
+    //         string value = e.Value?.ToString() ?? "";
+
+    //         MenuService.State.Keyboard.Value = value;
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD INPUT ERROR: {ex}");
+    //     }
+    // }
+
+
+    // private async Task KeyboardInputChanged(ChangeEventArgs e)
+    // {
+    //     try
+    //     {
+    //         string value = e.Value?.ToString() ?? "";
+
+    //         int type =
+    //             MenuService.State.Keyboard.Type;
+
+    //         ============================
+    //         TYPE 10
+    //         همه کاراکترها
+    //         ============================
+    //         if (type == 10)
+    //         {
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 11
+    //         Decimal
+    //         0-9
+    //         -
+    //         .
+    //         ============================
+    //         else if (type == 11)
+    //         {
+    //             string filtered = "";
+
+    //             foreach (char c in value)
+    //             {
+    //                 if (char.IsDigit(c) ||
+    //                     c == '-' ||
+    //                     c == '.')
+    //                 {
+    //                     filtered += c;
+    //                 }
+    //             }
+
+    //             value = filtered;
+
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 12
+    //         HEX
+    //         0-9 / A-F
+    //         ============================
+    //         else if (type == 12)
+    //         {
+    //             string filtered = "";
+
+    //             foreach (char c in value.ToUpperInvariant())
+    //             {
+    //                 if ((c >= '0' && c <= '9') ||
+    //                     (c >= 'A' && c <= 'F'))
+    //                 {
+    //                     filtered += c;
+    //                 }
+    //             }
+
+    //             value = filtered;
+
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         ============================
+    //         TYPE 13
+    //         Password
+    //         ============================
+    //         else if (type == 13)
+    //         {
+    //             MenuService.State.Keyboard.Value = value;
+    //         }
+
+    //         Console.WriteLine();
+    //         Console.WriteLine("========== KEYBOARD INPUT ==========");
+    //         Console.WriteLine($"TYPE  = [{type}]");
+    //         Console.WriteLine($"VALUE = [{value}]");
+
+    //         await DiagnosticService.SendAsync(value);
+
+    //         Console.WriteLine(
+    //             $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+    //         Console.WriteLine(
+    //             "===================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"KEYBOARD INPUT ERROR: {ex}");
+    //     }
+    // }
+
+
+
+    private async Task KeyboardInputChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            string value =
+                e.Value?.ToString() ?? "";
+
+            int type =
+                MenuService.State.Keyboard.Type;
+
+            MenuService.State.Keyboard.Value = value;
+
+            Console.WriteLine();
+            Console.WriteLine("========== KEYBOARD INPUT ==========");
+            Console.WriteLine($"TYPE  = [{type}]");
+            Console.WriteLine($"VALUE = [{value}]");
+
+            await DiagnosticService.SendAsync(value);
+
+            Console.WriteLine(
+                $"UI -> KEYBOARD INPUT SENT: [{value}]");
+
+            Console.WriteLine(
+                "===================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"KEYBOARD INPUT ERROR: {ex}");
         }
     }
 
 
-    /* ========================================================= */
-    /* MENU COMMANDS */
-    /* ========================================================= */
-
-    private async Task SelectMenuItem(int index)
+    private async Task SelectMenuItem(MenuItem item)
     {
         try
         {
-            string command = index.ToString();
+            // Original diagnostic behavior:
+            // menu button sends its index / TabIndex.
+            string command = item.Index.ToString();
 
             Console.WriteLine();
             Console.WriteLine(
                 "========== UI MENU COMMAND ==========");
 
             Console.WriteLine(
+                $"INDEX = [{item.Index}]");
+
+            Console.WriteLine(
                 $"COMMAND = [{command}]");
+
+            Console.WriteLine(
+                $"TEXT = [{item.Text}]");
 
             await DiagnosticService.SendAsync(command);
 
@@ -1211,6 +1745,52 @@
                 $"SelectMenuItem ERROR: {ex}");
         }
     }
+
+
+    private async Task ParameterUp()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("========== UI PARAMETER UP ==========");
+            Console.WriteLine("COMMAND = [1]");
+            Console.WriteLine("=====================================");
+
+            await MenuService.ParameterUp();
+
+            Console.WriteLine(
+                "UI -> PARAMETER UP SENT SUCCESSFULLY");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ParameterUp ERROR: {ex}");
+        }
+    }
+
+
+    private async Task ParameterDown()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine("======== UI PARAMETER DOWN ==========");
+            Console.WriteLine("COMMAND = [0]");
+            Console.WriteLine("=====================================");
+
+            await MenuService.ParameterDown();
+
+            Console.WriteLine(
+                "UI -> PARAMETER DOWN SENT SUCCESSFULLY");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ParameterDown ERROR: {ex}");
+        }
+    }
+
+
 
 
     /* ========================================================= */
@@ -1242,6 +1822,34 @@
         {
             Console.WriteLine(
                 $"SelectSensorItem ERROR: {ex}");
+        }
+    }
+
+
+
+    private async Task ConfirmParameterSelection()
+    {
+        try
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "===== PARAMETER SELECTION CONFIRM =====");
+
+            Console.WriteLine(
+                "COMMAND = [-2]");
+
+            await DiagnosticService.SendAsync("-2");
+
+            Console.WriteLine(
+                "PARAMETER SELECTION CONFIRMED");
+
+            Console.WriteLine(
+                "========================================");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"ConfirmParameterSelection ERROR: {ex}");
         }
     }
 
@@ -1284,6 +1892,33 @@
     /* MESSAGE */
     /* ========================================================= */
 
+    // private async Task ContinueMessage()
+    // {
+    //     try
+    //     {
+    //         Console.WriteLine();
+    //         Console.WriteLine(
+    //             "======== UI CONTINUE COMMAND =========");
+
+    //         Console.WriteLine(
+    //             "COMMAND = [0]");
+
+    //         await DiagnosticService.SendAsync("0");
+
+    //         Console.WriteLine(
+    //             "UI -> CONTINUE COMMAND SENT: [0]");
+
+    //         Console.WriteLine(
+    //             "=====================================");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"ContinueMessage ERROR: {ex}");
+    //     }
+    // }
+
+
     private async Task ContinueMessage()
     {
         try
@@ -1291,14 +1926,14 @@
             Console.WriteLine();
             Console.WriteLine(
                 "======== UI CONTINUE COMMAND =========");
+            
+            Console.WriteLine(
+                            "COMMAND = [543]");
+
+            await DiagnosticService.SendAsync("543");
 
             Console.WriteLine(
-                "COMMAND = [0]");
-
-            await DiagnosticService.SendAsync("0");
-
-            Console.WriteLine(
-                "UI -> CONTINUE COMMAND SENT: [0]");
+                "UI -> CONTINUE COMMAND SENT: [543]");
 
             Console.WriteLine(
                 "=====================================");
@@ -1309,6 +1944,7 @@
                 $"ContinueMessage ERROR: {ex}");
         }
     }
+
 
 
     /* ========================================================= */
@@ -1341,7 +1977,6 @@
         }
     }
 
-
     /* ========================================================= */
     /* DISPOSE */
     /* ========================================================= */
@@ -1359,22 +1994,5 @@
 
         TcpServer.LogReceived -=
             OnTcpLogReceived;
-    }
-    private async Task SendMinusElevenAsync()
-    {
-        try
-        {
-            Console.WriteLine("========== TEST -11 ==========");
-            Console.WriteLine("Sending command: -11");
-
-            await DiagnosticService.SendAsync("-11");
-
-            Console.WriteLine("Command sent successfully.");
-            Console.WriteLine("==============================");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error sending -11: {ex}");
-        }
     }
 }
