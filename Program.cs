@@ -19,6 +19,8 @@ builder.Services.AddSingleton<DiagnosticTcpServerService>();
 builder.Services.AddSingleton<DiagnosticService>();
 builder.Services.AddSingleton<DiagnosticMenuService>();
 builder.Services.AddSingleton<SerialService>();
+builder.Services.AddSingleton<OnlineDiagnosticDiscoveryService>();
+builder.Services.AddHostedService<DiagnosticTcpServerHostedService>();
 
 builder.Services.AddScoped<DiagDeviceService>();
 builder.Services.AddScoped<DeviceAuthService>();
@@ -133,6 +135,7 @@ app.MapRazorComponents<App>()
 // Existing OTP and login endpoints
 app.MapAuthEndpoints();
 app.MapOperatorEndpoints();
+app.MapCustomerRemoteAuthEndpoints();
 
 // Validate a saved device token
 app.MapPost("/api/auth/validate-token",

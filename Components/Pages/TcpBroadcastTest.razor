@@ -1,0 +1,97 @@
+﻿@page "/tcp-broadcast-test"
+@using MyBlazorApp1.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+
+@inject OnlineDiagnosticDiscoveryService DiscoveryService
+@inject DiagnosticTcpServerService TcpServer
+
+<PageTitle>آزمایش شناسایی دیاگ</PageTitle>
+
+<h3>شناسایی دستگاه‌های دیاگ</h3>
+
+<p>
+    برای هر اتصال TCP، یک درخواست شناسایی ارسال می‌شود.
+    درخواست‌ها به‌ترتیب پردازش می‌شوند.
+</p>
+
+<button class="btn btn-primary"
+        @onclick="ProbeIdentity"
+        disabled="@IsProbing">
+    @(IsProbing ? "در حال شناسایی..." : "دریافت اطلاعات شناسایی دیاگ")
+</button>
+
+@if (!string.IsNullOrWhiteSpace(Status))
+{
+    <p class="mt-3">@Status</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(IdentityResult))
+{
+    <pre>@IdentityResult</pre>
+}
+
+@code {
+    private bool IsProbing;
+    private string Status = "";
+    private string IdentityResult = "";
+
+    private async Task ProbeIdentity()
+    {
+        if (IsProbing)
+            return;
+
+        IsProbing = true;
+        Status = "";
+        IdentityResult = "";
+
+        try
+        {
+            var clients = TcpServer.GetConnectedClients();
+
+            if (clients.Count == 0)
+            {
+                Status = "هیچ کلاینت TCP متصلی وجود ندارد.";
+                return;
+            }
+
+            Status = $"تعداد اتصال‌های شناسایی‌شونده: {clients.Count}";
+
+            var results = new List<string>();
+
+            foreach (var client in clients)
+            {
+                try
+                {
+                    var identity =
+                        await DiscoveryService.ProbeConnectionAndReadIdentityAsync(
+                            client.ConnectionId);
+
+                    results.Add(
+                        $"Connection ID: {identity.ConnectionId}\n" +
+                        $"Software Ver: {identity.SoftwareVersion}\n" +
+                        $"Serial Number: {identity.SerialNumber}\n" +
+                        $"Counter: {identity.Counter}");
+                }
+                catch (Exception ex)
+                {
+                    results.Add(
+                        $"Connection ID: {client.ConnectionId}\n" +
+                        $"خطا: {ex.Message}");
+                }
+            }
+
+            IdentityResult = string.Join(
+                "\n\n--------------------\n\n",
+                results);
+        }
+        catch (Exception ex)
+        {
+            Status = $"خطا در دریافت فهرست اتصال‌ها: {ex.Message}";
+        }
+        finally
+        {
+            IsProbing = false;
+        }
+    }
+}

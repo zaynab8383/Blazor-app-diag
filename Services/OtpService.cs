@@ -132,4 +132,143 @@ public class OtpService
 
         return true;
     }
+
+
+    public async Task<string?> CreateCustomerRemoteOtpAsync(
+        string phoneNumber,
+        int validityMinutes = 5)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+            return null;
+
+        phoneNumber = phoneNumber.Trim();
+
+        var now = DateTime.UtcNow;
+        const string purpose = "CustomerRemoteLogin";
+
+        await using var db =
+            await _dbFactory.CreateDbContextAsync();
+
+
+        var devices = await db.DiagInfos
+            .Where(x =>
+                x.OwnerPhoneNumber == phoneNumber &&
+                !x.IsBlocked)
+            .Select(x => new { x.Id })
+            .ToListAsync();
+
+        if (devices.Count == 0)
+            return null;
+
+        string code = RandomNumberGenerator
+            .GetInt32(100000, 1000000)
+            .ToString();
+
+        string codeHash = _deviceService.HashSecret(code);
+
+        var deviceIds = devices.Select(x => x.Id).ToList();
+
+        var previousOtps = await db.Otps
+            .Where(x =>
+                deviceIds.Contains(x.DiagInfoId) &&
+                x.Purpose == purpose &&
+                x.UsedAt == null)
+            .ToListAsync();
+
+        foreach (var previousOtp in previousOtps)
+            previousOtp.UsedAt = now;
+
+        foreach (var device in devices)
+        {
+            db.Otps.Add(new Otp
+            {
+                DiagInfoId = device.Id,
+                CodeHash = codeHash,
+                Purpose = purpose,
+                CreatedAt = now,
+                ExpiresAt = now.AddMinutes(validityMinutes),
+                UsedAt = null
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        return code;
+    }
+
+    public async Task<bool> VerifyCustomerRemoteOtpAsync(
+        string phoneNumber,
+        string code)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber) ||
+            string.IsNullOrWhiteSpace(code))
+        {
+            return false;
+        }
+
+        phoneNumber = phoneNumber.Trim();
+        code = code.Trim();
+
+        var now = DateTime.UtcNow;
+        const string purpose = "CustomerRemoteLogin";
+
+        await using var db =
+            await _dbFactory.CreateDbContextAsync();
+
+        var deviceIds = await db.DiagInfos
+            .Where(x =>
+                x.OwnerPhoneNumber == phoneNumber &&
+                !x.IsBlocked)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        if (deviceIds.Count == 0)
+            return false;
+
+        var candidateOtps = await db.Otps
+            .Where(x =>
+                deviceIds.Contains(x.DiagInfoId) &&
+                x.Purpose == purpose &&
+                x.UsedAt == null &&
+                x.ExpiresAt > now)
+            .ToListAsync();
+
+        string inputHash = _deviceService.HashSecret(code);
+
+        var matchingOtp = candidateOtps.FirstOrDefault(x =>
+        {
+            try
+            {
+                return CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(x.CodeHash),
+                    Convert.FromHexString(inputHash));
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        });
+
+        if (matchingOtp == null)
+            return false;
+
+
+        string matchingHash = matchingOtp.CodeHash;
+
+        var allCopies = await db.Otps
+            .Where(x =>
+                deviceIds.Contains(x.DiagInfoId) &&
+                x.Purpose == purpose &&
+                x.UsedAt == null &&
+                x.CodeHash == matchingHash)
+            .ToListAsync();
+
+        foreach (var otp in allCopies)
+            otp.UsedAt = now;
+
+        await db.SaveChangesAsync();
+
+        return true;
+    }
+
 }
