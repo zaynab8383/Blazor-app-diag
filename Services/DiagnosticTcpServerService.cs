@@ -524,6 +524,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 
 namespace MyBlazorApp1.Services;
 
@@ -536,13 +537,56 @@ public sealed class DiagnosticTcpServerService : IDisposable
 {
     private sealed class ClientConnection
     {
+        public readonly object ReceiveBufferLock = new();
+        public readonly List<byte> ReceiveBuffer = new();
         public required string Id { get; init; }
         public required TcpClient Client { get; init; }
         public required NetworkStream Stream { get; init; }
         public required string EndPoint { get; init; }
         public SemaphoreSlim SendLock { get; } = new(1, 1);
     }
+    private static readonly byte[] DiagnosticEndMarker =
+    { 0xE2, 0x97, 0x89 };
 
+    private const int MaxCachedReceiveBytes = 128 * 1024;
+
+    public byte[] TakeBufferedData(string connectionId)
+    {
+        ClientConnection? connection;
+
+        lock (_sync)
+        {
+            if (!_clients.TryGetValue(connectionId, out connection))
+                return Array.Empty<byte>();
+        }
+
+        lock (connection.ReceiveBufferLock)
+        {
+            var data = connection.ReceiveBuffer.ToArray();
+            connection.ReceiveBuffer.Clear();
+            return data;
+        }
+    }
+
+    private static void BufferIncomingData(
+        ClientConnection connection,
+        byte[] data)
+    {
+        lock (connection.ReceiveBufferLock)
+        {
+            if (connection.ReceiveBuffer.Count + data.Length >
+                MaxCachedReceiveBytes)
+            {
+                connection.ReceiveBuffer.Clear();
+
+                Console.WriteLine(
+                    $"[TCP BUFFER] Cleared oversized cache: {connection.Id}");
+            }
+
+            if (data.Length <= MaxCachedReceiveBytes)
+                connection.ReceiveBuffer.AddRange(data);
+        }
+    }
     public sealed record ConnectedClientInfo(
         string ConnectionId,
         string EndPoint,
@@ -752,6 +796,7 @@ public sealed class DiagnosticTcpServerService : IDisposable
                     break;
 
                 var data = buffer.AsSpan(0, bytesRead).ToArray();
+                BufferIncomingData(connection, data);
                 Log($"RX {bytesRead} bytes from {connection.EndPoint} (connectionId={connection.Id})");
 
 

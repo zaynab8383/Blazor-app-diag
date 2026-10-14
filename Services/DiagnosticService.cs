@@ -6,7 +6,11 @@ namespace MyBlazorApp1.Services;
 public class DiagnosticService : IDisposable
 {
     private string? _selectedConnectionId;
+    private readonly object _bufferLock = new();
 
+    private readonly Dictionary<string, List<byte>> _pendingReceiveBuffers = new();
+
+    private const int MaxPendingBytesPerConnection = 64 * 1024;
 
     public string? SelectedConnectionId => _selectedConnectionId;
     private readonly DiagnosticTcpServerService _tcpServer;
@@ -39,20 +43,70 @@ public class DiagnosticService : IDisposable
     // =========================================================
     // TCP RECEIVE
     // =========================================================
+
     public void SelectConnection(string connectionId)
     {
         if (string.IsNullOrWhiteSpace(connectionId))
-            throw new ArgumentException("Connection ID is required.", nameof(connectionId));
+            throw new ArgumentException(
+                "Connection ID is required.", nameof(connectionId));
 
         bool connected = _tcpServer.GetConnectedClients()
             .Any(c => c.ConnectionId == connectionId);
 
         if (!connected)
-            throw new InvalidOperationException("دیاگ انتخاب‌شده متصل نیست.");
+            throw new InvalidOperationException(
+                "دیاگ انتخاب‌شده متصل نیست.");
 
-        _selectedConnectionId = connectionId;
-        _receiveBuffer.Clear();
+        lock (_bufferLock)
+        {
+            _selectedConnectionId = connectionId;
+            _receiveBuffer.Clear();
+        }
+
+        Console.WriteLine(
+            $"[DIAG SELECT] Connection={connectionId}");
     }
+
+
+
+    //public void SelectConnection(string connectionId)
+    //{
+    //    if (string.IsNullOrWhiteSpace(connectionId))
+    //        throw new ArgumentException(
+    //            "Connection ID is required.",
+    //            nameof(connectionId));
+
+    //    bool connected = _tcpServer.GetConnectedClients()
+    //        .Any(c => c.ConnectionId == connectionId);
+
+    //    if (!connected)
+    //        throw new InvalidOperationException(
+    //            "دیاگ انتخاب‌شده متصل نیست.");
+
+    //    _receiveBuffer.Clear();
+    //    _selectedConnectionId = connectionId;
+
+    //    Console.WriteLine(
+    //        $"[DIAG SELECT] Connection={_selectedConnectionId}; " +
+    //        $"Running={IsRunning}; " +
+    //        $"TCPConnected={connected}");
+    //}
+
+
+    //public void SelectConnection(string connectionId)
+    //{
+    //    if (string.IsNullOrWhiteSpace(connectionId))
+    //        throw new ArgumentException("Connection ID is required.", nameof(connectionId));
+
+    //    bool connected = _tcpServer.GetConnectedClients()
+    //        .Any(c => c.ConnectionId == connectionId);
+
+    //    if (!connected)
+    //        throw new InvalidOperationException("دیاگ انتخاب‌شده متصل نیست.");
+
+    //    _selectedConnectionId = connectionId;
+    //    _receiveBuffer.Clear();
+    //}
 
     //public void SelectConnection(string connectionId)
     //{
@@ -83,24 +137,77 @@ public class DiagnosticService : IDisposable
     //    ProcessReceivedBytes(data);
     //}
 
+    //private void OnTcpDataReceived(string connectionId, byte[] data)
+    //{
+    //    //Console.WriteLine(
+    //    //    $"[CUSTOMER RX EVENT] connection={connectionId}, " +
+    //    //    $"selected={_selectedConnectionId}, " +
+    //    //    $"running={IsRunning}, bytes={data?.Length ?? 0}");
+    //    if (!IsRunning)
+    //        return;
+
+    //    if (string.IsNullOrWhiteSpace(_selectedConnectionId) ||
+    //        connectionId != _selectedConnectionId)
+    //        return;
+
+    //    if (data == null || data.Length == 0)
+    //        return;
+
+    //    ProcessReceivedBytes(data);
+    //}
+
+
     private void OnTcpDataReceived(string connectionId, byte[] data)
     {
-        //Console.WriteLine(
-        //    $"[CUSTOMER RX EVENT] connection={connectionId}, " +
-        //    $"selected={_selectedConnectionId}, " +
-        //    $"running={IsRunning}, bytes={data?.Length ?? 0}");
-        if (!IsRunning)
+        if (string.IsNullOrWhiteSpace(connectionId) ||
+            data == null ||
+            data.Length == 0)
+        {
             return;
+        }
 
-        if (string.IsNullOrWhiteSpace(_selectedConnectionId) ||
-            connectionId != _selectedConnectionId)
-            return;
+        lock (_bufferLock)
+        {
+            Console.WriteLine(
+                $"[DIAG RX EVENT] Connection={connectionId}, " +
+                $"Bytes={data?.Length ?? 0}, " +
+                $"Running={IsRunning}, " +
+                $"Selected={_selectedConnectionId ?? "null"}");
+            // اگر این اتصال انتخاب شده و سرویس فعال است،
+            // داده را مستقیماً پردازش می‌کنیم.
+            if (IsRunning &&
+                connectionId == _selectedConnectionId)
+            {
+                ProcessReceivedBytes(data);
+                return;
+            }
 
-        if (data == null || data.Length == 0)
-            return;
+            // در غیر این صورت، داده را برای همین اتصال نگه می‌داریم.
+            if (!_pendingReceiveBuffers.TryGetValue(
+                    connectionId, out var buffer))
+            {
+                buffer = new List<byte>();
+                _pendingReceiveBuffers[connectionId] = buffer;
+            }
 
-        ProcessReceivedBytes(data);
+            // برای جلوگیری از رشد نامحدود حافظه.
+            if (buffer.Count + data.Length > MaxPendingBytesPerConnection)
+            {
+                Console.WriteLine(
+                    $"[DIAG BUFFER] Pending buffer limit reached: {connectionId}");
+
+                buffer.Clear();
+
+                // داده‌ای که به‌تنهایی از حد مجاز بزرگ‌تر است ذخیره نمی‌شود.
+                if (data.Length > MaxPendingBytesPerConnection)
+                    return;
+            }
+
+            buffer.AddRange(data);
+        }
     }
+
+
     private void ProcessReceivedBytes(byte[] bytes)
     {
         try
@@ -399,12 +506,56 @@ public class DiagnosticService : IDisposable
     // START
     // =========================================================
 
+    //public void Start()
+    //{
+    //    IsRunning = true;
+
+    //    Console.WriteLine(
+    //        "DiagnosticService started.");
+    //}
+
     public void Start()
     {
-        IsRunning = true;
+        byte[] pendingData = Array.Empty<byte>();
 
-        Console.WriteLine(
-            "DiagnosticService started.");
+        lock (_bufferLock)
+        {
+            IsRunning = true;
+
+            if (!string.IsNullOrWhiteSpace(_selectedConnectionId) &&
+                _pendingReceiveBuffers.TryGetValue(
+                    _selectedConnectionId, out var buffer))
+            {
+                pendingData = buffer.ToArray();
+                _pendingReceiveBuffers.Remove(_selectedConnectionId);
+            }
+        }
+
+        //Console.WriteLine("DiagnosticService started.");
+
+        //if (pendingData.Length > 0)
+        //{
+        //    Console.WriteLine(
+        //        $"[DIAG BUFFER] Processing {pendingData.Length} previously received bytes.");
+
+        //    ProcessReceivedBytes(pendingData);
+        //}
+        Console.WriteLine("DiagnosticService started.");
+
+        var connectionId = _selectedConnectionId;
+
+        if (!string.IsNullOrWhiteSpace(connectionId))
+        {
+            var bufferedData = _tcpServer.TakeBufferedData(connectionId);
+
+            if (bufferedData.Length > 0)
+            {
+                Console.WriteLine(
+                    $"[DIAG BUFFER] Processing {bufferedData.Length} cached TCP bytes.");
+
+                ProcessReceivedBytes(bufferedData);
+            }
+        }
     }
 
 
@@ -412,14 +563,26 @@ public class DiagnosticService : IDisposable
     // STOP
     // =========================================================
 
+    //public void Stop()
+    //{
+    //    IsRunning = false;
+
+    //    _receiveBuffer.Clear();
+
+    //    Console.WriteLine(
+    //        "DiagnosticService stopped.");
+    //}
+
+
     public void Stop()
     {
-        IsRunning = false;
+        lock (_bufferLock)
+        {
+            IsRunning = false;
+            _receiveBuffer.Clear();
+        }
 
-        _receiveBuffer.Clear();
-
-        Console.WriteLine(
-            "DiagnosticService stopped.");
+        Console.WriteLine("DiagnosticService stopped.");
     }
 
 

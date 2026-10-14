@@ -10,6 +10,9 @@
 @inject CustomerDiagnosticService CustomerDiagnosticService
 @inject OnlineDiagnosticDiscoveryService DiscoveryService
 @inject DiagnosticTcpServerService TcpServer
+@inject NavigationManager Navigation
+@inject DiagnosticService DiagnosticService
+@inject DiagnosticMenuService MenuService
 @* @inject DiagnosticService DiagnosticService
 @inject DiagnosticMenuService DiagnosticMenuService *@
 
@@ -205,10 +208,15 @@ else
     // }
     protected override async Task OnInitializedAsync()
     {
-        _customerDiagnosticService = new DiagnosticService(TcpServer);
-        _customerMenuService = new DiagnosticMenuService(
-            _customerDiagnosticService);
+        // _customerDiagnosticService = new DiagnosticService(TcpServer);
+        // _customerMenuService = new DiagnosticMenuService(
+        //     _customerDiagnosticService);
+        //_customerMenuService.StateChanged += OnCustomerMenuStateChanged;
+        _customerMenuService = MenuService;
+        _customerDiagnosticService = DiagnosticService;
+
         _customerMenuService.StateChanged += OnCustomerMenuStateChanged;
+
         await LoadDevicesAsync();
     }
 
@@ -285,19 +293,15 @@ else
                 return;
             }
 
-            if (_customerDiagnosticService is null)
-            {
-                errorMessage = "سرویس دیاگ مشتری آماده نیست.";
-                return;
-            }
-
-            _customerDiagnosticService.SelectConnection(
+            DiagnosticService.SelectConnection(
                 onlineDevice.ConnectionId);
 
-            _customerDiagnosticService.Start();
+            DiagnosticService.Start();
 
             selectedDevice = device;
             selectedConnectionId = onlineDevice.ConnectionId;
+
+            Navigation.NavigateTo("/");
         }
         catch (Exception ex)
         {
@@ -307,9 +311,55 @@ else
             errorMessage =
                 $"انتخاب دیاگ ناموفق بود: {ex.Message}";
         }
-
-        await InvokeAsync(StateHasChanged);
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
+    // private async Task SelectDevice(CustomerDiagnosticDto device)
+    // {
+    //     errorMessage = null;
+
+    //     try
+    //     {
+    //         var onlineDevice =
+    //             DiscoveryService.GetOnlineDeviceBySerialNumber(
+    //                 device.SerialNumber);
+
+    //         if (onlineDevice is null)
+    //         {
+    //             errorMessage =
+    //                 "اتصال دیاگ برقرار نیست یا شناسایی آن کامل نشده است.";
+    //             return;
+    //         }
+
+    //         if (_customerDiagnosticService is null)
+    //         {
+    //             errorMessage = "سرویس دیاگ مشتری آماده نیست.";
+    //             return;
+    //         }
+
+    //         _customerDiagnosticService.SelectConnection(
+    //             onlineDevice.ConnectionId);
+
+    //         _customerDiagnosticService.Start();
+
+    //         selectedDevice = device;
+    //         selectedConnectionId = onlineDevice.ConnectionId;
+    //         Navigation.NavigateTo("/");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.Error.WriteLine(
+    //             $"Select diagnostic failed: {ex}");
+
+    //         errorMessage =
+    //             $"انتخاب دیاگ ناموفق بود: {ex.Message}";
+    //     }
+
+    //     await InvokeAsync(StateHasChanged);
+    // }
 
     // private async Task SelectDevice(CustomerDiagnosticDto device)
     // {
@@ -386,19 +436,24 @@ else
     //     _customerMenuService?.Dispose();
     //     _customerDiagnosticService?.Dispose();
     // }
+    // public void Dispose()
+    // {
+    //     if (_customerMenuService is not null)
+    //     {
+    //         _customerMenuService.StateChanged -= OnCustomerMenuStateChanged;
+    //         _customerMenuService.Dispose();
+    //         _customerMenuService = null;
+    //     }
+
+    //     if (_customerDiagnosticService is not null)
+    //     {
+    //         _customerDiagnosticService.Dispose();
+    //         _customerDiagnosticService = null;
+    //     }
+    // }
     public void Dispose()
     {
         if (_customerMenuService is not null)
-        {
             _customerMenuService.StateChanged -= OnCustomerMenuStateChanged;
-            _customerMenuService.Dispose();
-            _customerMenuService = null;
-        }
-
-        if (_customerDiagnosticService is not null)
-        {
-            _customerDiagnosticService.Dispose();
-            _customerDiagnosticService = null;
-        }
     }
 }

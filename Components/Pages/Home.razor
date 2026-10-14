@@ -1,5 +1,5 @@
 ﻿@page "/"
-@attribute [Authorize(Roles = "Operator")]
+@attribute [Authorize(Roles = "Operator,Customer")]
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @using MyBlazorApp1.Services
