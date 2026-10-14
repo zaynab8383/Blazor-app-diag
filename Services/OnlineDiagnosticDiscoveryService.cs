@@ -74,7 +74,12 @@ public sealed class OnlineDiagnosticDiscoveryService
     private readonly SemaphoreSlim _saveLock = new(1, 1);
     private readonly ConcurrentDictionary<string, DiagnosticIdentity>
     _onlineDevices = new();
-    private static readonly byte[] EndMarker = { 0xE2, 0x97, 0x89 };
+    //private static readonly byte[] EndMarker = { 0xE2, 0x97, 0x89 };
+    //private static readonly byte[] EndMarker = { 0xE2, 0x97, 0x86 };
+    private static readonly byte[] EndMarker =
+    {
+        0xE2, 0x97, 0x89 // ◉
+    };
 
     private readonly DiagnosticTcpServerService _tcpServer;
 
@@ -240,7 +245,28 @@ public sealed class OnlineDiagnosticDiscoveryService
     //            $"{connectionId}; error={ex.Message}");
     //    }
     //}
+    public DiagnosticIdentity? GetOnlineDeviceBySerialNumber(
+    string serialNumber)
+    {
+        if (string.IsNullOrWhiteSpace(serialNumber))
+            return null;
 
+        var connectedIds = _tcpServer.GetConnectedClients()
+            .Select(x => x.ConnectionId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var item in _onlineDevices.ToArray())
+        {
+            if (!connectedIds.Contains(item.Key))
+                _onlineDevices.TryRemove(item.Key, out _);
+        }
+
+        return _onlineDevices.Values.FirstOrDefault(x =>
+            string.Equals(
+                x.SerialNumber,
+                serialNumber.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+    }
     private async Task ProbeNewConnectionAsync(string connectionId)
     {
         try
@@ -276,9 +302,20 @@ public sealed class OnlineDiagnosticDiscoveryService
         string connectionId,
         byte[] data)
     {
+        Console.WriteLine(
+       $"[DIAG PARSER ENTER] Connection={connectionId}; Bytes={data.Length}");
+        //if (!_pending.TryGetValue(connectionId, out var pending))
+        //    return;
         if (!_pending.TryGetValue(connectionId, out var pending))
-            return;
+        {
+            Console.WriteLine(
+                $"[DIAG PARSER] No pending probe for connection={connectionId}");
 
+            return;
+        }
+
+        Console.WriteLine(
+            $"[DIAG PARSER] Pending probe found for connection={connectionId}");
         lock (pending.Sync)
         {
             pending.Buffer.AddRange(data);
@@ -286,7 +323,9 @@ public sealed class OnlineDiagnosticDiscoveryService
             while (true)
             {
                 int end = FindEndMarker(pending.Buffer);
-
+                Console.WriteLine(
+                    $"[DIAG PARSER] Buffer={pending.Buffer.Count}; " +
+                    $"EndMarkerIndex={end}");
                 if (end < 0)
                     break;
 
@@ -297,13 +336,21 @@ public sealed class OnlineDiagnosticDiscoveryService
                 pending.Buffer.RemoveRange(0, end + EndMarker.Length);
 
                 string message = Encoding.UTF8.GetString(frame);
+                Console.WriteLine(
+                    $"[DIAG PARSER] Connection={connectionId}; " +
+                    $"Message=<{message}>");
 
-
+                //var match = Regex.Match(
+                //    message,
+                //    @"◆Type◆◆-11◆◆Software Ver\s*=\s*(.*?)◆◆Serial Number\s*=\s*(.*?)◆◆Counter\s*=\s*(.*?)◆",
+                //    RegexOptions.Singleline);
                 var match = Regex.Match(
                     message,
-                    @"◆Type◆◆-11◆◆Software Ver\s*=\s*(.*?)◆◆Serial Number\s*=\s*(.*?)◆◆Counter\s*=\s*(.*?)◆",
+                    @"◆Type◆◆-11◆◆Software Ver\s*=\s*(.*?)◆◆Serial Number\s*=\s*(.*?)◆◆Counter\s*=\s*(.*?)(?:◆)?$",
                     RegexOptions.Singleline);
 
+                Console.WriteLine(
+                     $"[DIAG PARSER] Regex success={match.Success}");
 
                 if (!match.Success)
                     continue;
@@ -321,6 +368,7 @@ public sealed class OnlineDiagnosticDiscoveryService
                     $"Software={identity.SoftwareVersion}; " +
                     $"Serial={identity.SerialNumber}; " +
                     $"Counter={identity.Counter}");
+
 
                 pending.Completion.TrySetResult(identity);
                 return;

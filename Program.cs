@@ -26,6 +26,7 @@ builder.Services.AddScoped<DiagDeviceService>();
 builder.Services.AddScoped<DeviceAuthService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<OperatorAuthService>();
+builder.Services.AddScoped<CustomerDiagnosticService>();
 
 builder.Services
     .AddAuthentication(
@@ -138,6 +139,7 @@ app.MapAuthEndpoints();
 app.MapOperatorEndpoints();
 app.MapCustomerRemoteAuthEndpoints();
 app.MapRemoteDiagnosticCommandEndpoints();
+app.MapCustomerEndpoints();
 
 // Validate a saved device token
 app.MapPost("/api/auth/validate-token",

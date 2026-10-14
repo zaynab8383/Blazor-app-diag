@@ -1,0 +1,161 @@
+﻿@page "/customer/login"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>ورود مشتری</PageTitle>
+
+<div class="container mt-5" style="max-width: 440px;">
+    <h3 class="mb-4">ورود مشتری</h3>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success">@successMessage</div>
+    }
+
+    @if (string.IsNullOrWhiteSpace(developmentOtp))
+    {
+        <label class="form-label" for="phone">شماره موبایل</label>
+        <input id="phone"
+               class="form-control mb-3"
+               type="tel"
+               @bind="phoneNumber"
+               placeholder="شماره موبایل ثبت‌شده"
+               autocomplete="tel"
+               disabled="@isBusy" />
+
+        <button class="btn btn-primary w-100"
+                @onclick="RequestOtpAsync"
+                disabled="@isBusy">
+            @(isBusy ? "در حال ارسال..." : "دریافت کد ورود")
+        </button>
+    }
+    else
+    {
+        <p>کد آزمایشی در محیط توسعه صادر شده است.</p>
+
+        <div class="alert alert-secondary">
+            کد آزمایشی: <strong>@developmentOtp</strong>
+        </div>
+
+        <label class="form-label" for="otp">کد یک‌بارمصرف</label>
+        <input id="otp"
+               class="form-control mb-3"
+               type="text"
+               inputmode="numeric"
+               autocomplete="one-time-code"
+               @bind="otpCode"
+               disabled="@isBusy"
+               placeholder="کد دریافتی" />
+
+        <button class="btn btn-success w-100"
+                @onclick="VerifyOtpAsync"
+                disabled="@isBusy">
+            @(isBusy ? "در حال بررسی..." : "ورود")
+        </button>
+
+        <button class="btn btn-link w-100 mt-2"
+                @onclick="ResetForm"
+                disabled="@isBusy">
+            تغییر شماره موبایل
+        </button>
+    }
+</div>
+
+@code {
+    private string phoneNumber = "";
+    private string otpCode = "";
+    private string? developmentOtp;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isBusy;
+
+    private async Task RequestOtpAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+        developmentOtp = null;
+
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            errorMessage = "شماره موبایل را وارد کن.";
+            return;
+        }
+
+        isBusy = true;
+
+        try
+        {
+            var result = await JS.InvokeAsync<OtpResponse>(
+                "customerAuth.requestOtp", phoneNumber.Trim());
+
+            developmentOtp = result.DevelopmentOtp;
+
+            successMessage = developmentOtp is not null
+                ? "کد آزمایشی آماده است."
+                : "درخواست ثبت شد. کد را از پیامک وارد کن.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task VerifyOtpAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(otpCode))
+        {
+            errorMessage = "کد یک‌بارمصرف را وارد کن.";
+            return;
+        }
+
+        isBusy = true;
+
+        try
+        {
+            await JS.InvokeAsync<object>(
+                "customerAuth.verifyOtp",
+                phoneNumber.Trim(),
+                otpCode.Trim());
+
+            // بارگذاری کامل صفحه باعث می‌شود درخواست جدید
+            // با کوکی احراز هویت مرورگر ارسال شود.
+            Navigation.NavigateTo("/customer/diagnostics", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        developmentOtp = null;
+        otpCode = "";
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private sealed class OtpResponse
+    {
+        public string? DevelopmentOtp { get; set; }
+        public string? Message { get; set; }
+    }
+}

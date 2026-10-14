@@ -1,0 +1,161 @@
+﻿@page "/customer/diagnostics"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Customer")]
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using MyBlazorApp1.Services
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CustomerDiagnosticService CustomerDiagnosticService
+
+<PageTitle>دیاگ‌های من</PageTitle>
+
+<h3>دیاگ‌های من</h3>
+
+@if (loading)
+{
+    <p>در حال دریافت فهرست دیاگ‌ها...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p role="alert">@errorMessage</p>
+    <button class="btn btn-primary" @onclick="LoadDevicesAsync">
+        تلاش مجدد
+    </button>
+}
+else if (devices.Count == 0)
+{
+    <p>هیچ دیاگی برای این حساب ثبت نشده است.</p>
+}
+else
+{
+    <p>تعداد دیاگ‌های شما: @devices.Count</p>
+
+    <div class="row">
+        @foreach (var device in devices)
+        {
+            <div class="col-12 col-md-6 mb-3" @key="device.SerialNumber">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            دیاگ @device.SerialNumber
+                        </h5>
+
+                        <p>
+                            وضعیت:
+                            @if (device.IsOnline)
+                            {
+                                <span class="text-success fw-bold">آنلاین</span>
+                            }
+                            else
+                            {
+                                <span class="text-secondary fw-bold">آفلاین</span>
+                            }
+                        </p>
+
+                        @if (device.IsOnline)
+                        {
+                            <p>نسخه نرم‌افزار: @device.SoftwareVersion</p>
+                            <p>شمارنده: @device.Counter</p>
+
+                            <button class="btn btn-primary"
+                                    @onclick="() => SelectDevice(device)">
+                                انتخاب دیاگ
+                            </button>
+                        }
+                        else
+                        {
+                            <p>برای اتصال، ابتدا دیاگ را آنلاین کنید.</p>
+                            <button class="btn btn-secondary" disabled>
+                                انتخاب دیاگ
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button class="btn btn-outline-primary" @onclick="LoadDevicesAsync">
+        به‌روزرسانی وضعیت
+    </button>
+
+    @if (selectedDevice is not null)
+    {
+        <hr />
+        <p>
+            دیاگ انتخاب‌شده:
+            <strong>@selectedDevice.SerialNumber</strong>
+        </p>
+        <p>
+            در مرحلهٔ بعد، اتصال و تبادل فرمان با این دیاگ پیاده‌سازی می‌شود.
+        </p>
+    }
+}
+
+@code {
+    private List<CustomerDiagnosticDto> devices = new();
+    private CustomerDiagnosticDto? selectedDevice;
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDevicesAsync();
+    }
+
+    private async Task LoadDevicesAsync()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            var authState =
+                await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated != true ||
+                !user.IsInRole("Customer"))
+            {
+                errorMessage = "برای مشاهدهٔ دیاگ‌ها ابتدا وارد حساب مشتری شوید.";
+                return;
+            }
+
+            var phone = user.FindFirst(ClaimTypes.MobilePhone)?.Value;
+
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                errorMessage = "شماره تلفن در اطلاعات ورود پیدا نشد.";
+                return;
+            }
+
+            var result = await CustomerDiagnosticService.GetForPhoneAsync(phone);
+
+            devices = result.ToList();
+
+            if (selectedDevice is not null)
+            {
+                selectedDevice = devices.FirstOrDefault(
+                    d => d.SerialNumber == selectedDevice.SerialNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"Customer diagnostics page error: {ex}");
+
+            errorMessage = "دریافت فهرست دیاگ‌ها ناموفق بود.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void SelectDevice(CustomerDiagnosticDto device)
+    {
+        selectedDevice = device;
+    }
+}
