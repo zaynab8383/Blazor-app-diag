@@ -5,6 +5,10 @@ namespace MyBlazorApp1.Services;
 
 public class DiagnosticService : IDisposable
 {
+    private string? _selectedConnectionId;
+
+
+    public string? SelectedConnectionId => _selectedConnectionId;
     private readonly DiagnosticTcpServerService _tcpServer;
 
     private readonly List<byte> _receiveBuffer = new();
@@ -29,18 +33,67 @@ public class DiagnosticService : IDisposable
     {
         _tcpServer = tcpServer;
 
-        _tcpServer.DataReceived +=
-            OnTcpDataReceived;
+        _tcpServer.ClientDataReceived += OnTcpDataReceived;
     }
-
 
     // =========================================================
     // TCP RECEIVE
     // =========================================================
-
-    private void OnTcpDataReceived(byte[] data)
+    public void SelectConnection(string connectionId)
     {
+        if (string.IsNullOrWhiteSpace(connectionId))
+            throw new ArgumentException("Connection ID is required.", nameof(connectionId));
+
+        bool connected = _tcpServer.GetConnectedClients()
+            .Any(c => c.ConnectionId == connectionId);
+
+        if (!connected)
+            throw new InvalidOperationException("دیاگ انتخاب‌شده متصل نیست.");
+
+        _selectedConnectionId = connectionId;
+        _receiveBuffer.Clear();
+    }
+
+    //public void SelectConnection(string connectionId)
+    //{
+    //    if (string.IsNullOrWhiteSpace(connectionId))
+    //        throw new ArgumentException("Connection ID is required.");
+
+    //    if (!_tcpServer.GetConnectedClients()
+    //        .Any(c => c.ConnectionId == connectionId))
+    //    {
+    //        throw new InvalidOperationException(
+    //            "The selected diagnostic connection is no longer active.");
+    //    }
+
+    //    _selectedConnectionId = connectionId;
+    //    _receiveBuffer.Clear();
+
+    //    Console.WriteLine(
+    //        $"Selected diagnostic connection: {connectionId}");
+    //}
+    //private void OnTcpDataReceived(byte[] data)
+    //{
+    //    if (!IsRunning)
+    //        return;
+
+    //    if (data == null || data.Length == 0)
+    //        return;
+
+    //    ProcessReceivedBytes(data);
+    //}
+
+    private void OnTcpDataReceived(string connectionId, byte[] data)
+    {
+        //Console.WriteLine(
+        //    $"[CUSTOMER RX EVENT] connection={connectionId}, " +
+        //    $"selected={_selectedConnectionId}, " +
+        //    $"running={IsRunning}, bytes={data?.Length ?? 0}");
         if (!IsRunning)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_selectedConnectionId) ||
+            connectionId != _selectedConnectionId)
             return;
 
         if (data == null || data.Length == 0)
@@ -48,8 +101,6 @@ public class DiagnosticService : IDisposable
 
         ProcessReceivedBytes(data);
     }
-
-
     private void ProcessReceivedBytes(byte[] bytes)
     {
         try
@@ -217,11 +268,26 @@ public class DiagnosticService : IDisposable
 
         if (command == null) return;
 
-        if (!_tcpServer.IsClientConnected)
+
+        var connectionId = _selectedConnectionId;
+
+        if (string.IsNullOrWhiteSpace(connectionId))
         {
             throw new InvalidOperationException(
-                "TCP client is not connected.");
+                "No diagnostic connection has been selected.");
         }
+
+        if (!_tcpServer.GetConnectedClients()
+            .Any(c => c.ConnectionId == connectionId))
+        {
+            throw new InvalidOperationException(
+                "The selected diagnostic connection is disconnected.");
+        }
+        //if (!_tcpServer.IsClientConnected)
+        //{
+        //    throw new InvalidOperationException(
+        //        "TCP client is not connected.");
+        //}
 
 
         // =====================================================
@@ -267,8 +333,8 @@ public class DiagnosticService : IDisposable
             "=================================");
 
 
-        await _tcpServer.SendAsync(data);
-
+        //await _tcpServer.SendAsync(data);
+        await _tcpServer.SendAsync(connectionId, data);
 
         Console.WriteLine(
             "DIAGNOSTIC COMMAND SENT SUCCESSFULLY");
@@ -363,8 +429,7 @@ public class DiagnosticService : IDisposable
 
     public void Dispose()
     {
-        _tcpServer.DataReceived -=
-            OnTcpDataReceived;
+        _tcpServer.ClientDataReceived -= OnTcpDataReceived;
 
         Stop();
     }

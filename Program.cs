@@ -20,6 +20,7 @@ builder.Services.AddSingleton<DiagnosticService>();
 builder.Services.AddSingleton<DiagnosticMenuService>();
 builder.Services.AddSingleton<SerialService>();
 builder.Services.AddSingleton<OnlineDiagnosticDiscoveryService>();
+builder.Services.AddSingleton<DiagnosticCommandDispatcher>();
 builder.Services.AddHostedService<DiagnosticTcpServerHostedService>();
 
 builder.Services.AddScoped<DiagDeviceService>();
@@ -139,6 +140,7 @@ app.MapAuthEndpoints();
 app.MapOperatorEndpoints();
 app.MapCustomerRemoteAuthEndpoints();
 app.MapRemoteDiagnosticCommandEndpoints();
+app.MapCustomerRemoteDiagnosticCommandEndpoints();
 app.MapCustomerEndpoints();
 
 // Validate a saved device token
@@ -164,6 +166,7 @@ app.MapPost("/api/auth/validate-token",
             request.DeviceToken);
 
         if (!valid)
+
         {
             return Results.Unauthorized();
         }

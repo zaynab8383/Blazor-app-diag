@@ -1,12 +1,17 @@
 ﻿@page "/customer/diagnostics"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Customer")]
-
+@implements IDisposable
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @using MyBlazorApp1.Services
+@using System
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject CustomerDiagnosticService CustomerDiagnosticService
+@inject OnlineDiagnosticDiscoveryService DiscoveryService
+@inject DiagnosticTcpServerService TcpServer
+@* @inject DiagnosticService DiagnosticService
+@inject DiagnosticMenuService DiagnosticMenuService *@
 
 <PageTitle>دیاگ‌های من</PageTitle>
 
@@ -87,21 +92,129 @@ else
             دیاگ انتخاب‌شده:
             <strong>@selectedDevice.SerialNumber</strong>
         </p>
-        <p>
-            در مرحلهٔ بعد، اتصال و تبادل فرمان با این دیاگ پیاده‌سازی می‌شود.
-        </p>
+        @if (!string.IsNullOrWhiteSpace(selectedConnectionId))
+        {
+            <p class="text-success">
+                اتصال فعال دیاگ انتخاب شد.
+            </p>
+        }
+    
+        <hr />
+        <h4>منوی دیاگ @selectedDevice.SerialNumber</h4>
+        <p>اتصال انتخاب‌شده: @selectedConnectionId</p>
+        
+        @if (_customerMenuService is not null)
+        {
+            var menu = _customerMenuService.State;
+
+            <hr />
+            <h5>@menu.Header</h5>
+
+            @switch (menu.Screen)
+            {
+                case MenuScreen.BoxPage:
+                case MenuScreen.SelectPage:
+                case MenuScreen.SoftwareList:
+                    @foreach (var item in menu.Items)
+                    {
+                        <button class="btn btn-outline-primary d-block mb-2"
+                                @key="item.Index"
+                                @onclick="() => _customerMenuService.SelectMenuItem(item.Index)">
+                            @item.Text
+                        </button>
+                    }
+                    break;
+
+                case MenuScreen.Message:
+                    <p>@menu.Message</p>
+                    <button class="btn btn-primary"
+                            @onclick="_customerMenuService.ContinueMessage">
+                        ادامه
+                    </button>
+                    break;
+
+                case MenuScreen.Memo:
+                    @foreach (var memo in menu.MemoRecords)
+                    {
+                        <h6>@memo.Title</h6>
+                        @foreach (var line in memo.Lines)
+                        {
+                            <p>@line</p>
+                        }
+                    }
+                    break;
+
+                case MenuScreen.Parameters:
+                    @foreach (var parameter in menu.Parameters)
+                    {
+                        <p>
+                            @parameter.Name:
+                            @(parameter.IsActive ? parameter.CurrentValue : "^^^^")
+                        </p>
+                    }
+                    break;
+
+                case MenuScreen.Sensor:
+                    @foreach (var sensor in menu.Sensors)
+                    {
+                        <p>@sensor.Name: @sensor.CurrentValue</p>
+                    }
+
+                    @foreach (var action in menu.SensorActions)
+                    {
+                        <button class="btn btn-outline-primary me-2 mb-2"
+                                @key="action.Index"
+                                @onclick="() => _customerMenuService.SelectSensorItem(action.Index)">
+                            @action.Text
+                        </button>
+                    }
+                    break;
+
+                case MenuScreen.Type10:
+                case MenuScreen.Type11:
+                case MenuScreen.Type12:
+                case MenuScreen.Type13:
+                    <p>@menu.Keyboard.Header</p>
+                    <p>@menu.Keyboard.Value</p>
+                    break;
+            }
+
+            @if (menu.Screen != MenuScreen.None)
+            {
+                <button class="btn btn-secondary mt-2"
+                        @onclick="_customerMenuService.Back">
+                    بازگشت
+                </button>
+            }
+        }
     }
 }
 
 @code {
+    private DiagnosticService? _customerDiagnosticService;
+    private DiagnosticMenuService? _customerMenuService;
     private List<CustomerDiagnosticDto> devices = new();
     private CustomerDiagnosticDto? selectedDevice;
     private bool loading = true;
     private string? errorMessage;
+    private string? selectedConnectionId;
 
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     await LoadDevicesAsync();
+    // }
     protected override async Task OnInitializedAsync()
     {
+        _customerDiagnosticService = new DiagnosticService(TcpServer);
+        _customerMenuService = new DiagnosticMenuService(
+            _customerDiagnosticService);
+        _customerMenuService.StateChanged += OnCustomerMenuStateChanged;
         await LoadDevicesAsync();
+    }
+
+    private void OnCustomerMenuStateChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadDevicesAsync()
@@ -154,8 +267,138 @@ else
         }
     }
 
-    private void SelectDevice(CustomerDiagnosticDto device)
+
+    private async Task SelectDevice(CustomerDiagnosticDto device)
     {
-        selectedDevice = device;
+        errorMessage = null;
+
+        try
+        {
+            var onlineDevice =
+                DiscoveryService.GetOnlineDeviceBySerialNumber(
+                    device.SerialNumber);
+
+            if (onlineDevice is null)
+            {
+                errorMessage =
+                    "اتصال دیاگ برقرار نیست یا شناسایی آن کامل نشده است.";
+                return;
+            }
+
+            if (_customerDiagnosticService is null)
+            {
+                errorMessage = "سرویس دیاگ مشتری آماده نیست.";
+                return;
+            }
+
+            _customerDiagnosticService.SelectConnection(
+                onlineDevice.ConnectionId);
+
+            _customerDiagnosticService.Start();
+
+            selectedDevice = device;
+            selectedConnectionId = onlineDevice.ConnectionId;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"Select diagnostic failed: {ex}");
+
+            errorMessage =
+                $"انتخاب دیاگ ناموفق بود: {ex.Message}";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // private async Task SelectDevice(CustomerDiagnosticDto device)
+    // {
+    //     errorMessage = null;
+
+    //     try
+    //     {
+    //         var onlineDevice =
+    //             DiscoveryService.GetOnlineDeviceBySerialNumber(device.SerialNumber);
+
+    //         if (onlineDevice is null)
+    //         {
+    //             errorMessage =
+    //                 "اتصال دیاگ برقرار نیست یا شناسایی آن کامل نشده است.";
+    //             return;
+    //         }
+
+    //         اتصال همین دیاگ را برای دریافت و ارسال انتخاب می‌کنیم.
+    //         DiagnosticService.SelectConnection(onlineDevice.ConnectionId);
+
+    //         دریافت اطلاعات منو را فعال می‌کنیم.
+    //         DiagnosticService.Start();
+    //        DiagnosticMenuService.Reset();
+
+    //         selectedDevice = device;
+    //         selectedConnectionId = onlineDevice.ConnectionId;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.Error.WriteLine($"Select diagnostic failed: {ex}");
+    //         errorMessage = $"انتخاب دیاگ ناموفق بود: {ex.Message}";
+    //     }
+
+    //     await InvokeAsync(StateHasChanged);
+    // }
+
+    // private async Task SelectDevice(CustomerDiagnosticDto device)
+    // {
+    //     errorMessage = null;
+
+    //     try
+    //     {
+    //         اتصال TCP فعال مربوط به همین شماره سریال را پیدا کن.
+    //         var onlineDevice =
+    //             DiscoveryService.GetOnlineDeviceBySerialNumber(device.SerialNumber);
+
+    //         if (onlineDevice is null)
+    //         {
+    //             errorMessage =
+    //                 "اتصال دیاگ برقرار نیست یا شناسایی آن کامل نشده است. وضعیت را به‌روزرسانی کنید.";
+    //             return;
+    //         }
+
+    //         selectedDevice = device;
+
+    //         به‌جای ساخت اتصال جدید، شناسه اتصال موجود را نگه می‌داریم.
+    //         selectedConnectionId = onlineDevice.ConnectionId;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.Error.WriteLine($"Select diagnostic failed: {ex}");
+    //         errorMessage = "انتخاب دیاگ ناموفق بود.";
+    //     }
+    // }
+
+
+    // private void SelectDevice(CustomerDiagnosticDto device)
+    // {
+    //     selectedDevice = device;
+    // }
+    // public void Dispose()
+    // {
+    //     _customerMenuService.StateChanged -= OnCustomerMenuStateChanged;
+    //     _customerMenuService?.Dispose();
+    //     _customerDiagnosticService?.Dispose();
+    // }
+    public void Dispose()
+    {
+        if (_customerMenuService is not null)
+        {
+            _customerMenuService.StateChanged -= OnCustomerMenuStateChanged;
+            _customerMenuService.Dispose();
+            _customerMenuService = null;
+        }
+
+        if (_customerDiagnosticService is not null)
+        {
+            _customerDiagnosticService.Dispose();
+            _customerDiagnosticService = null;
+        }
     }
 }

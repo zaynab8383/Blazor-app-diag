@@ -106,7 +106,7 @@ public class MenuState
 }
 
 
-public class DiagnosticMenuService
+public class DiagnosticMenuService : IDisposable
 {
     private readonly DiagnosticService _diagnosticService;
 
@@ -1866,5 +1866,12 @@ public class DiagnosticMenuService
             $"Parameters={State.Parameters.Count}");
 
         StateChanged?.Invoke();
+    }
+    public void Dispose()
+    {
+        _diagnosticService.DiagnosticDataReceived -=
+            OnDiagnosticDataReceived;
+
+        StateChanged = null;
     }
 }

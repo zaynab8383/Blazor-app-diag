@@ -265,3 +265,4 @@ public static class RemoteDiagnosticCommandEndpoints
         string SerialNumber,
         string Command);
 }
+
