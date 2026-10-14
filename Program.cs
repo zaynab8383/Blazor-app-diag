@@ -74,7 +74,8 @@ var app = builder.Build();
 
 
 
-
+// Ensure discovery subscribes to TCP events before clients connect.
+_ = app.Services.GetRequiredService<OnlineDiagnosticDiscoveryService>();
 
 var resetUsername = app.Configuration["OperatorPasswordReset:Username"];
 var resetPassword = app.Configuration["OperatorPasswordReset:NewPassword"];
@@ -136,6 +137,7 @@ app.MapRazorComponents<App>()
 app.MapAuthEndpoints();
 app.MapOperatorEndpoints();
 app.MapCustomerRemoteAuthEndpoints();
+app.MapRemoteDiagnosticCommandEndpoints();
 
 // Validate a saved device token
 app.MapPost("/api/auth/validate-token",

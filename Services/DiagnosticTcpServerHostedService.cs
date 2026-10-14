@@ -5,13 +5,13 @@ namespace MyBlazorApp1.Services;
 
 public sealed class DiagnosticTcpServerHostedService : IHostedService
 {
-    private readonly DiagnosticTcpServerService _tcpServer;
+    //private readonly DiagnosticTcpServerService _tcpServer;
 
-    public DiagnosticTcpServerHostedService(
-        DiagnosticTcpServerService tcpServer)
-    {
-        _tcpServer = tcpServer;
-    }
+    //public DiagnosticTcpServerHostedService(
+    //    DiagnosticTcpServerService tcpServer)
+    //{
+    //    _tcpServer = tcpServer;
+    //}
 
     //public Task StartAsync(CancellationToken cancellationToken)
     //{
@@ -19,7 +19,15 @@ public sealed class DiagnosticTcpServerHostedService : IHostedService
 
     //    return _tcpServer.StartAsync(9000);
     //}
+    private readonly DiagnosticTcpServerService _tcpServer;
 
+    public DiagnosticTcpServerHostedService(
+        DiagnosticTcpServerService tcpServer,
+        OnlineDiagnosticDiscoveryService discovery)
+    {
+        _tcpServer = tcpServer;
+        _ = discovery; // اطمینان از ساخته‌شدن Discovery پیش از شروع سرور
+    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

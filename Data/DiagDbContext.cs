@@ -16,6 +16,10 @@ public partial class DiagDbContext : DbContext
 
     public virtual DbSet<Otp> Otps { get; set; }
 
+    public virtual DbSet<DiscoveredDiagnosticDevice>
+    DiscoveredDiagnosticDevices
+    { get; set; }
+
     public virtual DbSet<OperatorAccount> OperatorAccounts { get; set; }
 
 
@@ -73,6 +77,33 @@ public partial class DiagDbContext : DbContext
             entity.Property(x => x.SessionTokenHash)
                 .HasMaxLength(200)
                 .IsRequired();
+        });
+
+
+        modelBuilder.Entity<DiscoveredDiagnosticDevice>(entity =>
+        {
+            entity.ToTable("DiscoveredDiagnosticDevices");
+
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => x.SerialNumber)
+                .IsUnique();
+
+            entity.Property(x => x.SerialNumber)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.SoftwareVersion)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Counter)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.FirstSeenAtUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
+            entity.Property(x => x.LastSeenAtUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()");
         });
         OnModelCreatingPartial(modelBuilder);
     }

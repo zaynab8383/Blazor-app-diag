@@ -973,6 +973,7 @@ public sealed class DiagnosticTcpServerService : IDisposable
                 nameof(data));
 
         // Take a snapshot so connections can change while sending.
+        // Take a snapshot so connections can change while sending.
         var clients = GetConnectedClients();
 
         if (clients.Count == 0)

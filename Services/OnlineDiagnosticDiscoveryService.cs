@@ -47,6 +47,11 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using MyBlazorApp1.Data;
+using MyBlazorApp1.Models;
+//using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MyBlazorApp1.Services;
 
@@ -65,6 +70,8 @@ public sealed class OnlineDiagnosticDiscoveryService
         public readonly TaskCompletionSource<DiagnosticIdentity> Completion =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
     private readonly ConcurrentDictionary<string, DiagnosticIdentity>
     _onlineDevices = new();
     private static readonly byte[] EndMarker = { 0xE2, 0x97, 0x89 };
@@ -74,11 +81,14 @@ public sealed class OnlineDiagnosticDiscoveryService
     private readonly ConcurrentDictionary<string, PendingProbe> _pending = new();
 
     public OnlineDiagnosticDiscoveryService(
-        DiagnosticTcpServerService tcpServer)
+        DiagnosticTcpServerService tcpServer,
+        IServiceScopeFactory scopeFactory)
     {
+        _scopeFactory = scopeFactory;
         _tcpServer = tcpServer;
         _tcpServer.ClientDataReceived += HandleClientDataReceived;
         _tcpServer.ClientDisconnected += HandleClientDisconnected;
+        _tcpServer.ClientConnected += HandleClientConnected;
     }
 
     // متد قبلی: ارسال فرمان به تمام کلاینت‌ها
@@ -102,6 +112,64 @@ public sealed class OnlineDiagnosticDiscoveryService
             connectionId,
             Encoding.ASCII.GetBytes("-11\n"));
     }
+
+
+    private async Task SaveDiscoveredDeviceAsync(
+    DiagnosticIdentity identity,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(identity.SerialNumber))
+            throw new InvalidDataException(
+                "Cannot save a device with an empty serial number.");
+
+        await _saveLock.WaitAsync(cancellationToken);
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+
+            var db = scope.ServiceProvider
+                .GetRequiredService<DiagDbContext>();
+
+            var now = DateTime.UtcNow;
+            var serial = identity.SerialNumber.Trim();
+
+            var device = await db.DiscoveredDiagnosticDevices
+                .SingleOrDefaultAsync(
+                    x => x.SerialNumber == serial,
+                    cancellationToken);
+
+            if (device == null)
+            {
+                device = new DiscoveredDiagnosticDevice
+                {
+                    SerialNumber = serial,
+                    SoftwareVersion = identity.SoftwareVersion,
+                    Counter = identity.Counter,
+                    FirstSeenAtUtc = now,
+                    LastSeenAtUtc = now
+                };
+
+                db.DiscoveredDiagnosticDevices.Add(device);
+            }
+            else
+            {
+                device.SoftwareVersion = identity.SoftwareVersion;
+                device.Counter = identity.Counter;
+                device.LastSeenAtUtc = now;
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            Console.WriteLine(
+                $"[DIAG DB] Device saved; serial={serial}");
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+    }
+
 
     // متد جدید: ارسال فرمان و انتظار برای پاسخ شناسایی
     public async Task<DiagnosticIdentity> ProbeConnectionAndReadIdentityAsync(
@@ -131,6 +199,76 @@ public sealed class OnlineDiagnosticDiscoveryService
             _pending.TryRemove(
                 new KeyValuePair<string, PendingProbe>(
                     connectionId, pending));
+        }
+    }
+
+    private void HandleClientConnected(
+        DiagnosticTcpServerService.ConnectedClientInfo client)
+    {
+        Console.WriteLine(
+            $"[DIAG PROBE] Starting identity probe: {client.ConnectionId}");
+
+        _ = ProbeNewConnectionAsync(client.ConnectionId);
+    }
+
+    //private async Task ProbeNewConnectionAsync(string connectionId)
+    //{
+    //    try
+    //    {
+    //        var identity = await ProbeConnectionAndReadIdentityAsync(
+    //            connectionId);
+
+    //        Console.WriteLine(
+    //            $"[DIAG DISCOVERY] Identified connection " +
+    //            $"{connectionId}; serial={identity.SerialNumber}");
+
+    //    }
+    //    catch (TimeoutException)
+    //    {
+    //        Console.WriteLine(
+    //            $"[DIAG DISCOVERY] Identity timeout: {connectionId}");
+    //    }
+    //    catch (OperationCanceledException)
+    //    {
+    //        Console.WriteLine(
+    //            $"[DIAG DISCOVERY] Identification cancelled: {connectionId}");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Console.WriteLine(
+    //            $"[DIAG DISCOVERY] Identification failed: " +
+    //            $"{connectionId}; error={ex.Message}");
+    //    }
+    //}
+
+    private async Task ProbeNewConnectionAsync(string connectionId)
+    {
+        try
+        {
+            var identity = await ProbeConnectionAndReadIdentityAsync(
+                connectionId);
+
+            Console.WriteLine(
+                $"[DIAG DISCOVERY] Identified connection " +
+                $"{connectionId}; serial={identity.SerialNumber}");
+
+            await SaveDiscoveredDeviceAsync(identity);
+        }
+        catch (TimeoutException)
+        {
+            Console.WriteLine(
+                $"[DIAG DISCOVERY] Identity timeout: {connectionId}");
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine(
+                $"[DIAG DISCOVERY] Identification cancelled: {connectionId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[DIAG DISCOVERY] Identification or database save failed: " +
+                $"{connectionId}; error={ex.Message}");
         }
     }
 

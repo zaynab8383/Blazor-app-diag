@@ -114,8 +114,8 @@ public class OtpService
 
         string codeHash = _deviceService.HashSecret(code);
 
-        Console.WriteLine($"OTP DEBUG: inputHash={codeHash}");
-        Console.WriteLine($"OTP DEBUG: storedHash={otp.CodeHash}");
+        //Console.WriteLine($"OTP DEBUG: inputHash={codeHash}");
+        //Console.WriteLine($"OTP DEBUG: storedHash={otp.CodeHash}");
         //string codeHash = _deviceService.HashSecret(code);
 
         bool valid = CryptographicOperations.FixedTimeEquals(
