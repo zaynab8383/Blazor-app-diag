@@ -16,8 +16,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<UdpServer>();
 builder.Services.AddSingleton<DiagnosticTcpServerService>();
-builder.Services.AddSingleton<DiagnosticService>();
-builder.Services.AddSingleton<DiagnosticMenuService>();
+builder.Services.AddScoped<DiagnosticService>();
+builder.Services.AddScoped<DiagnosticMenuService>();
 builder.Services.AddSingleton<SerialService>();
 builder.Services.AddSingleton<OnlineDiagnosticDiscoveryService>();
 builder.Services.AddSingleton<DiagnosticCommandDispatcher>();

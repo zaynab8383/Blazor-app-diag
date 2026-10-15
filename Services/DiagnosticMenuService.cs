@@ -346,11 +346,18 @@ public class DiagnosticMenuService : IDisposable
 
     private void ShowBoxPage(string[] value)
     {
+        //State.Screen = MenuScreen.BoxPage;
+
+        //State.Header = GetHeader(value);
+
         State.Screen = MenuScreen.BoxPage;
 
-        State.Header = GetHeader(value);
+        string parsedHeader = GetHeader(value);
 
-
+        if (!string.IsNullOrWhiteSpace(parsedHeader))
+        {
+            State.Header = parsedHeader;
+        }
 
         Console.WriteLine();
         Console.WriteLine("========== SHOW BOX PAGE ==========");

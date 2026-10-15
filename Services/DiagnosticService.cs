@@ -1,5 +1,8 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MyBlazorApp1.Services;
 
@@ -315,29 +318,423 @@ public class DiagnosticService : IDisposable
     // MESSAGE PARSER
     // =========================================================
 
-    private void ProcessMessage(
-        string message)
-    {
-        string[] parts =
-            ParseMessage(message);
+    //private void ProcessMessage(
+    //    string message)
+    //{
+    //    string[] parts =
+    //        ParseMessage(message);
 
-        Console.WriteLine(
-            $"Parsed diagnostic fields: {parts.Length}");
+    //    Console.WriteLine(
+    //        $"Parsed diagnostic fields: {parts.Length}");
+
+    //    if (parts.Length == 0)
+    //        return;
+
+    //    if (parts.Length > 1)
+    //    {
+    //        Console.WriteLine(
+    //            $"Diagnostic TYPE = [{parts[1]}]");
+    //    }
+
+    //    if (parts[0] == "Type")
+    //    {
+    //        DiagnosticDataReceived?.Invoke(parts);
+    //    }
+    //}
+    //private void ProcessMessage(string message)
+    //{
+    //    string[] parts = ParseMessage(message);
+
+    //    for (int i = 0; i < parts.Length; i++)
+    //            {
+    //                Console.WriteLine($"[PARSED FIELD {i}] [{parts[i]}]");
+    //            }
+
+    //    Console.WriteLine(
+    //        $"Parsed diagnostic fields: {parts.Length}");
+
+    //    if (parts.Length == 0)
+    //        return;
+
+    //    if (parts[0] == "Type")
+    //    {
+    //        Console.WriteLine(
+    //            $"Diagnostic TYPE = [{(parts.Length > 1 ? parts[1] : "")}]");
+
+    //        DiagnosticDataReceived?.Invoke(parts);
+    //        return;
+    //    }
+
+    //    // Handle menu responses that omit the Type field.
+    //    if (TryNormalizeUntypedMenu(parts, out var normalized))
+    //    {
+    //        Console.WriteLine(
+    //            "[DIAG PARSER] Untyped menu response normalized.");
+
+    //        DiagnosticDataReceived?.Invoke(normalized);
+    //        return;
+    //    }
+
+    //    Console.WriteLine(
+    //        "[DIAG PARSER] Message ignored: no recognized Type or menu structure.");
+    //}
+
+
+
+    //private void ProcessMessage(string message)
+    //{
+    //    string[] parts = ParseMessage(message);
+    //    for (int i = 0; i < parts.Length; i++)
+    //    {
+    //        Console.WriteLine($"[DIAG FIELD {i}] [{parts[i]}]");
+    //    }
+    //    Console.WriteLine(
+    //        $"Parsed diagnostic fields: {parts.Length}");
+
+    //    // فقط فیلدهای خالی ابتدا و انتهای پیام حذف می‌شوند.
+    //    // فیلدهای خالی بین داده‌ها باید حفظ شوند.
+    //    int start = 0;
+    //    int end = parts.Length - 1;
+
+    //    while (start <= end &&
+    //           string.IsNullOrWhiteSpace(parts[start]))
+    //    {
+    //        start++;
+    //    }
+
+    //    while (end >= start &&
+    //           string.IsNullOrWhiteSpace(parts[end]))
+    //    {
+    //        end--;
+    //    }
+
+    //    if (start > end)
+    //    {
+    //        Console.WriteLine("[DIAG PARSER] Empty message.");
+    //        return;
+    //    }
+
+    //    parts = parts.Skip(start).Take(end - start + 1).ToArray();
+
+    //    Console.WriteLine(
+    //        $"[DIAG PARSER] FIRST FIELD = [{parts[0]}]");
+
+    //    // پیام استاندارد: Type, 4, Header, ...
+    //    if (string.Equals(
+    //            parts[0]?.Trim(),
+    //            "Type",
+    //            StringComparison.OrdinalIgnoreCase))
+    //    {
+    //        string type = parts.Length > 1
+    //            ? parts[1]?.Trim() ?? ""
+    //            : "";
+
+    //        Console.WriteLine(
+    //            $"[DIAG PARSER] Standard message. TYPE = [{type}]");
+
+    //        DiagnosticDataReceived?.Invoke(parts);
+    //        return;
+    //    }
+
+    //    // پیام منو بدون Type
+    //    if (TryNormalizeUntypedMenu(parts, out var normalized))
+    //    {
+    //        Console.WriteLine(
+    //            "[DIAG PARSER] Untyped menu response normalized.");
+
+    //        DiagnosticDataReceived?.Invoke(normalized);
+    //        return;
+    //    }
+
+    //    Console.WriteLine(
+    //        "[DIAG PARSER] Message ignored: no recognized Type or menu structure.");
+    //}
+
+    private void ProcessMessage(string message)
+    {
+        string[] parts = ParseMessage(message);
+
+        Console.WriteLine();
+        Console.WriteLine("========== DIAG PARSER ==========");
+        Console.WriteLine($"Parsed fields = {parts.Length}");
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            Console.WriteLine($"FIELD[{i}] = [{parts[i]}]");
+        }
+
+        Console.WriteLine("=================================");
 
         if (parts.Length == 0)
+        {
+            Console.WriteLine("[DIAG PARSER] Empty message.");
             return;
+        }
 
-        if (parts.Length > 1)
+        // پیام استاندارد:
+        // Type, -11, Software Ver = ..., Serial Number = ..., Counter = ...
+        if (string.Equals(
+                parts[0],
+                "Type",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            if (parts.Length < 2 ||
+                string.IsNullOrWhiteSpace(parts[1]))
+            {
+                Console.WriteLine(
+                    "[DIAG PARSER] Standard message has no type value.");
+                return;
+            }
+
+            string type = parts[1].Trim();
+
+            Console.WriteLine(
+                $"[DIAG PARSER] Standard message. TYPE = [{type}]");
+
+            DiagnosticDataReceived?.Invoke(parts);
+            return;
+        }
+
+        // فقط پیام‌های منوی بدون Type که ساختار شناخته‌شده دارند.
+        if (TryNormalizeUntypedMenu(parts, out var normalized))
         {
             Console.WriteLine(
-                $"Diagnostic TYPE = [{parts[1]}]");
+                "[DIAG PARSER] Untyped menu response normalized.");
+
+            DiagnosticDataReceived?.Invoke(normalized);
+            return;
         }
 
-        if (parts[0] == "Type")
-        {
-            DiagnosticDataReceived?.Invoke(parts);
-        }
+        Console.WriteLine(
+            "[DIAG PARSER] Message ignored: unrecognized structure.");
     }
+
+
+    //private string[] ParseMessage(string message)
+    //{
+    //    if (string.IsNullOrEmpty(message))
+    //        return Array.Empty<string>();
+
+    //    var matches = Regex.Matches(message, @"◆([^◆]*)◆");
+    //    var result = new List<string>();
+
+    //    foreach (Match match in matches)
+    //    {
+    //        if (match.Groups.Count > 1)
+    //        {
+    //            string field = match.Groups[1].Value.Trim();
+
+    //            if (!string.IsNullOrWhiteSpace(field))
+    //                result.Add(field);
+    //        }
+    //    }
+
+    //    return result.ToArray();
+    //}
+
+
+
+    private bool TryNormalizeUntypedMenu(
+        string[] parts,
+        out string[] normalized)
+    {
+        normalized = Array.Empty<string>();
+
+        int countIndex = Array.FindIndex(
+            parts,
+            p => string.Equals(
+                p?.Trim(), "Count",
+                StringComparison.OrdinalIgnoreCase));
+
+        int selectedIndexKey = Array.FindIndex(
+            parts,
+            p => string.Equals(
+                p?.Trim(), "Selected_Index",
+                StringComparison.OrdinalIgnoreCase));
+
+        // Both named fields are required; do not guess from arbitrary data.
+        if (countIndex < 0 ||
+            selectedIndexKey < 0 ||
+            countIndex + 1 >= parts.Length ||
+            selectedIndexKey + 1 >= parts.Length)
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[countIndex + 1]?.Trim(), out int count) ||
+            !int.TryParse(parts[selectedIndexKey + 1]?.Trim(), out int selected))
+        {
+            return false;
+        }
+
+        if (count < 0 || count > 200)
+            return false;
+
+        var items = new List<(int Index, string Text)>();
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string field = parts[i]?.Trim() ?? "";
+
+            if (!field.StartsWith(
+                    "R", StringComparison.OrdinalIgnoreCase) ||
+                !int.TryParse(field[1..], out int itemIndex))
+            {
+                continue;
+            }
+
+            // The observed protocol has Rn, an empty field, then the text.
+            string text = "";
+
+            if (i + 2 < parts.Length)
+                text = parts[i + 2]?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(text) && i + 1 < parts.Length)
+                text = parts[i + 1]?.Trim() ?? "";
+
+            items.Add((itemIndex, text));
+        }
+
+        if (items.Count == 0 && count > 0)
+            return false;
+
+        // Build the index layout expected by ShowBoxPage:
+        // [6] = Count, [8] = Selected_Index, [9...] = menu rows.
+        var result = new List<string>
+    {
+        "Type", "4", "Header", "",
+        "", "", count.ToString(),
+        "Selected_Index", selected.ToString()
+    };
+
+        foreach (var item in items.OrderBy(x => x.Index).Take(count))
+        {
+            result.Add($"R{item.Index}");
+            result.Add("");
+            result.Add(item.Text);
+        }
+
+        normalized = result.ToArray();
+        return true;
+    }
+
+
+    //private bool TryNormalizeUntypedMenu(
+    //    string[] parts,
+    //    out string[] normalized)
+    //{
+    //    normalized = Array.Empty<string>();
+
+    //    if (parts == null || parts.Length < 4)
+    //        return false;
+
+    //    int countIndex = Array.FindIndex(
+    //        parts,
+    //        p => string.Equals(
+    //            p?.Trim(), "Count",
+    //            StringComparison.OrdinalIgnoreCase));
+
+    //    int selectedIndexKey = Array.FindIndex(
+    //        parts,
+    //        p => string.Equals(
+    //            p?.Trim(), "Selected_Index",
+    //            StringComparison.OrdinalIgnoreCase));
+
+    //    int count;
+
+    //    // قالب دارای Count
+    //    if (countIndex >= 0 &&
+    //        countIndex + 1 < parts.Length &&
+    //        int.TryParse(parts[countIndex + 1]?.Trim(), out int parsedCount))
+    //    {
+    //        count = parsedCount;
+    //    }
+    //    // قالب مشاهده‌شده: عدد ابتدای پیام، سپس Selected_Index
+    //    else if (selectedIndexKey >= 0 &&
+    //             int.TryParse(parts[0]?.Trim(), out int leadingCount))
+    //    {
+    //        count = leadingCount;
+    //    }
+    //    else
+    //    {
+    //        return false;
+    //    }
+
+    //    if (count < 0 || count > 200 ||
+    //        selectedIndexKey < 0 ||
+    //        selectedIndexKey + 1 >= parts.Length ||
+    //        !int.TryParse(
+    //            parts[selectedIndexKey + 1]?.Trim(),
+    //            out int selected))
+    //    {
+    //        return false;
+    //    }
+
+    //    var items = new List<(int Index, string Text)>();
+
+    //    for (int i = 0; i < parts.Length; i++)
+    //    {
+    //        string field = parts[i]?.Trim() ?? "";
+
+    //        if (field.Length < 2 ||
+    //            !field.StartsWith("R", StringComparison.OrdinalIgnoreCase) ||
+    //            !int.TryParse(field[1..], out int itemIndex))
+    //        {
+    //            continue;
+    //        }
+
+    //        if (itemIndex < 0)
+    //            continue;
+
+    //        // در آرایه استخراج‌شده، متن معمولاً فیلد بعد از Rn است.
+    //        string text = i + 1 < parts.Length
+    //            ? parts[i + 1]?.Trim() ?? ""
+    //            : "";
+
+    //        if (string.IsNullOrWhiteSpace(text))
+    //            continue;
+
+    //        items.Add((itemIndex, text));
+    //    }
+
+    //    if (count > 0 && items.Count == 0)
+    //        return false;
+
+    //    // تعداد گزینه‌های واقعی باید با count سازگار باشد.
+    //    var orderedItems = items
+    //        .GroupBy(x => x.Index)
+    //        .Select(g => g.First())
+    //        .OrderBy(x => x.Index)
+    //        .ToList();
+
+    //    if (orderedItems.Count > count)
+    //        orderedItems = orderedItems.Take(count).ToList();
+
+    //    var result = new List<string>
+    //{
+    //    "Type", "4",
+    //    "Header", "",
+    //    "", "",
+    //    count.ToString(),
+    //    "Selected_Index", selected.ToString()
+    //};
+
+    //    foreach (var item in orderedItems)
+    //    {
+    //        result.Add($"R{item.Index}");
+    //        result.Add("");
+    //        result.Add(item.Text);
+    //    }
+
+    //    normalized = result.ToArray();
+
+    //    Console.WriteLine(
+    //        $"[DIAG PARSER] Menu normalized. Count={count}, " +
+    //        $"Selected_Index={selected}, Items={orderedItems.Count}");
+
+    //    return true;
+    //}
+
 
 
     private string[] ParseMessage(
