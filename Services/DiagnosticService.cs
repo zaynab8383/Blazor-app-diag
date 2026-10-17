@@ -533,6 +533,126 @@ public class DiagnosticService : IDisposable
     //}
 
 
+    //private bool TryNormalizeUntypedMenu(
+    //    string[] parts,
+    //    out string[] normalized)
+    //{
+    //    normalized = Array.Empty<string>();
+
+    //    if (parts == null || parts.Length < 3)
+    //        return false;
+
+    //    int selectedKeyIndex = Array.FindIndex(
+    //        parts,
+    //        p => string.Equals(
+    //            p?.Trim(),
+    //            "Selected_Index",
+    //            StringComparison.OrdinalIgnoreCase));
+
+    //    // منوی بدون Selected_Index را حدس نمی‌زنیم.
+    //    if (selectedKeyIndex < 0 ||
+    //        selectedKeyIndex + 1 >= parts.Length ||
+    //        !int.TryParse(
+    //            parts[selectedKeyIndex + 1]?.Trim(),
+    //            out int selectedIndex))
+    //    {
+    //        return false;
+    //    }
+
+    //    int countKeyIndex = Array.FindIndex(
+    //        parts,
+    //        p => string.Equals(
+    //            p?.Trim(),
+    //            "Count",
+    //            StringComparison.OrdinalIgnoreCase));
+
+    //    int count;
+
+    //    // قالب اول: Count سپس مقدار آن
+    //    if (countKeyIndex >= 0)
+    //    {
+    //        if (countKeyIndex + 1 >= parts.Length ||
+    //            !int.TryParse(
+    //                parts[countKeyIndex + 1]?.Trim(),
+    //                out count))
+    //        {
+    //            return false;
+    //        }
+    //    }
+    //    // قالب دوم: عدد ابتدای پیام، مثلاً 8
+    //    else if (!int.TryParse(parts[0]?.Trim(), out count))
+    //    {
+    //        return false;
+    //    }
+
+    //    if (count < 0 || count > 200 ||
+    //        selectedIndex < 0 ||
+    //        (count > 0 && selectedIndex >= count))
+    //    {
+    //        return false;
+    //    }
+
+    //    var items = new SortedDictionary<int, string>();
+
+    //    for (int i = 0; i < parts.Length; i++)
+    //    {
+    //        string field = parts[i]?.Trim() ?? "";
+
+    //        if (field.Length < 2 ||
+    //            !field.StartsWith("R", StringComparison.OrdinalIgnoreCase) ||
+    //            !int.TryParse(field.Substring(1), out int itemIndex) ||
+    //            itemIndex < 0)
+    //        {
+    //            continue;
+    //        }
+
+    //        // در قالب فعلی، متن ممکن است در فیلد بعدی
+    //        // یا پس از یک فیلد خالی قرار داشته باشد.
+    //        string text = "";
+
+    //        if (i + 1 < parts.Length)
+    //            text = parts[i + 1]?.Trim() ?? "";
+
+    //        if (string.IsNullOrWhiteSpace(text) &&
+    //            i + 2 < parts.Length)
+    //        {
+    //            text = parts[i + 2]?.Trim() ?? "";
+    //        }
+
+    //        if (!string.IsNullOrWhiteSpace(text))
+    //            items[itemIndex] = text;
+    //    }
+
+    //    if (count > 0 && items.Count == 0)
+    //        return false;
+
+    //    // ساخت آرایه مطابق قرارداد فعلی ShowBoxPage
+    //    var result = new List<string>
+    //{
+    //    "Type", "4",
+    //    "Header", "",
+    //    "", "",
+    //    count.ToString(),
+    //    "Selected_Index",
+    //    selectedIndex.ToString()
+    //};
+
+    //    foreach (var item in items.Take(count))
+    //    {
+    //        result.Add($"R{item.Key}");
+    //        result.Add("");
+    //        result.Add(item.Value);
+    //    }
+
+    //    normalized = result.ToArray();
+
+    //    Console.WriteLine(
+    //        $"[DIAG MENU] Normalized: Count={count}, " +
+    //        $"Selected_Index={selectedIndex}, Items={items.Count}");
+
+    //    return true;
+    //}
+
 
     private bool TryNormalizeUntypedMenu(
         string[] parts,
@@ -733,6 +853,42 @@ public class DiagnosticService : IDisposable
     //        $"Selected_Index={selected}, Items={orderedItems.Count}");
 
     //    return true;
+    //}
+
+
+
+
+    //private string[] ParseMessage(string message)
+    //{
+    //    if (string.IsNullOrWhiteSpace(message))
+    //        return Array.Empty<string>();
+
+    //    // Preserve empty fields: ShowBoxPage expects the
+    //    // original protocol field positions to remain intact.
+    //    string[] parts = message
+    //        .Split('◆', StringSplitOptions.None)
+    //        .Select(part => part.Trim())
+    //        .ToArray();
+
+    //    // Remove the terminator only from the final field.
+    //    if (parts.Length > 0)
+    //    {
+    //        parts[^1] = parts[^1]
+    //            .Replace("◉", "")
+    //            .Trim();
+    //    }
+
+    //    // Remove only trailing empty fields, not empty fields
+    //    // between protocol delimiters.
+    //    int length = parts.Length;
+
+    //    while (length > 0 &&
+    //           string.IsNullOrWhiteSpace(parts[length - 1]))
+    //    {
+    //        length--;
+    //    }
+
+    //    return parts.Take(length).ToArray();
     //}
 
 
