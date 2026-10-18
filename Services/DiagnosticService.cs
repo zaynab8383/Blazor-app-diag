@@ -2279,18 +2279,50 @@ public class DiagnosticService : IDisposable
     // SEND RAW HEX
     // =========================================================
 
-    public async Task SendHexAsync(
-        string hex)
+    //public async Task SendHexAsync(
+    //    string hex)
+    //{
+    //    if (string.IsNullOrWhiteSpace(hex))
+    //        return;
+
+    //    string cleaned =
+    //        hex
+    //            .Replace(" ", "")
+    //            .Replace("-", "")
+    //            .Replace("\r", "")
+    //            .Replace("\n", "");
+
+    //    if (string.IsNullOrWhiteSpace(cleaned))
+    //        return;
+
+    //    byte[] data;
+
+    //    try
+    //    {
+    //        data =
+    //            Convert.FromHexString(
+    //                cleaned);
+    //    }
+    //    catch (FormatException)
+    //    {
+    //        Console.WriteLine(
+    //            "Invalid HEX data.");
+
+    //        return;
+    //    }
+
+    //    await _tcpServer.SendAsync(data);
+    //}
+    public async Task SendHexAsync(string hex)
     {
         if (string.IsNullOrWhiteSpace(hex))
             return;
 
-        string cleaned =
-            hex
-                .Replace(" ", "")
-                .Replace("-", "")
-                .Replace("\r", "")
-                .Replace("\n", "");
+        string cleaned = hex
+            .Replace(" ", "")
+            .Replace("-", "")
+            .Replace("\r", "")
+            .Replace("\n", "");
 
         if (string.IsNullOrWhiteSpace(cleaned))
             return;
@@ -2299,21 +2331,31 @@ public class DiagnosticService : IDisposable
 
         try
         {
-            data =
-                Convert.FromHexString(
-                    cleaned);
+            data = Convert.FromHexString(cleaned);
         }
         catch (FormatException)
         {
-            Console.WriteLine(
-                "Invalid HEX data.");
-
+            Console.WriteLine("Invalid HEX data.");
             return;
         }
 
-        await _tcpServer.SendAsync(data);
-    }
+        var connectionId = _selectedConnectionId;
 
+        if (string.IsNullOrWhiteSpace(connectionId))
+        {
+            throw new InvalidOperationException(
+                "No diagnostic connection has been selected.");
+        }
+
+        if (!_tcpServer.GetConnectedClients()
+            .Any(c => c.ConnectionId == connectionId))
+        {
+            throw new InvalidOperationException(
+                "The selected diagnostic connection is disconnected.");
+        }
+
+        await _tcpServer.SendAsync(connectionId, data);
+    }
 
     // =========================================================
     // START
