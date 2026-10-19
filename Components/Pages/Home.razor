@@ -5,6 +5,8 @@
 @using MyBlazorApp1.Services
 @using Microsoft.AspNetCore.Authorization
 
+
+
 @implements IDisposable
 
 @inject DiagnosticService DiagnosticService
@@ -1213,7 +1215,6 @@
             Console.WriteLine(
                 $"TCP INITIALIZATION ERROR: {ex}");
         }
-
         await InvokeAsync(StateHasChanged);
     }
 

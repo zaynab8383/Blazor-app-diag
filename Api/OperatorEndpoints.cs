@@ -577,6 +577,74 @@ public static class OperatorEndpoints
             })
             .RequireAuthorization(policy => policy.RequireRole("Operator"));
 
+        app.MapPost("/api/operator/remote-diagnostic/restore-session",
+    async (
+        RemoteRestoreSessionRequest request,
+        ClaimsPrincipal user,
+        IDbContextFactory<DiagDbContext> dbFactory) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.SessionToken))
+            return Results.Unauthorized();
+
+        var username = user.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(username))
+            return Results.Unauthorized();
+
+        byte[] tokenBytes;
+
+        try
+        {
+            tokenBytes = Convert.FromBase64String(request.SessionToken);
+        }
+        catch (FormatException)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (tokenBytes.Length != 32)
+            return Results.Unauthorized();
+
+        var tokenHash = Convert.ToHexString(
+            SHA256.HashData(tokenBytes));
+
+        await using var db = await dbFactory.CreateDbContextAsync();
+
+        var operatorAccount = await db.OperatorAccounts
+            .SingleOrDefaultAsync(x =>
+                x.Username == username && x.IsActive);
+
+        if (operatorAccount == null)
+            return Results.Unauthorized();
+
+        var now = DateTime.UtcNow;
+
+        var session = await db.RemoteDiagnosticSessions
+            .SingleOrDefaultAsync(x =>
+                x.SessionTokenHash == tokenHash &&
+                x.OperatorAccountId == operatorAccount.Id &&
+                x.ExpiresAt > now &&
+                x.RevokedAt == null);
+
+        if (session == null)
+            return Results.Unauthorized();
+
+        var device = await db.DiagInfos
+            .SingleOrDefaultAsync(x =>
+                x.Id == session.DiagInfoId);
+
+        if (device == null || device.IsBlocked)
+            return Results.Unauthorized();
+
+        return Results.Ok(new
+        {
+            success = true,
+            serialNumber = device.SerialNumber
+        });
+    })
+    .RequireAuthorization(policy => policy.RequireRole("Operator"));
+
+
         // Sends one command only after validating the operator cookie, session token,
         // session ownership, device status, and the currently online TCP connection.
         app.MapPost("/api/operator/remote-diagnostic/send-command",
@@ -727,7 +795,8 @@ public static class OperatorEndpoints
         string SerialNumber,
         string SessionToken,
         string Command);
-
+    public sealed record RemoteRestoreSessionRequest(
+    string SessionToken);
     public sealed record RemoteVerifyOtpRequest(
     string SerialNumber,
     string Code);

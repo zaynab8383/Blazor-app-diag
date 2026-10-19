@@ -1161,6 +1161,7 @@ namespace MyBlazorApp1.Services;
 
 public class DiagnosticService : IDisposable
 {
+    private readonly HashSet<string> _recoveryPendingConnections = new();
     private string? _selectedConnectionId;
     private string? _selectedSerialNumber;
     private readonly object _bufferLock = new();
@@ -1236,6 +1237,96 @@ public class DiagnosticService : IDisposable
             $"Serial={_selectedSerialNumber ?? "unknown"}");
     }
 
+
+    public bool SelectSerialNumber(string serialNumber)
+    {
+        if (string.IsNullOrWhiteSpace(serialNumber))
+            return false;
+
+        serialNumber = serialNumber.Trim();
+
+        // Arm the serial first, so a later DeviceIdentified event
+        // can rebind the connection if the device is not online yet.
+        lock (_bufferLock)
+        {
+            _selectedSerialNumber = serialNumber;
+            _selectedConnectionId = null;
+            _receiveBuffer.Clear();
+        }
+
+        var connectedIds = _tcpServer.GetConnectedClients()
+            .Select(c => c.ConnectionId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var matches = _discovery.GetOnlineDevices()
+            .Where(x => string.Equals(
+                x.SerialNumber,
+                serialNumber,
+                StringComparison.OrdinalIgnoreCase))
+            .Where(x => connectedIds.Contains(x.ConnectionId))
+            .ToArray();
+
+        if (matches.Length != 1)
+        {
+            Console.WriteLine(
+                $"[DIAG RESTORE] Serial={serialNumber}; " +
+                $"matching connections={matches.Length}");
+
+            // Keep the serial armed for a future DeviceIdentified event.
+            return false;
+        }
+
+        var connectionId = matches[0].ConnectionId;
+        byte[] pendingData = Array.Empty<byte>();
+
+        lock (_bufferLock)
+        {
+            if (!string.Equals(
+                    _selectedSerialNumber,
+                    serialNumber,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            _selectedConnectionId = connectionId;
+
+            if (_pendingReceiveBuffers.Remove(
+                    connectionId, out var buffered))
+            {
+                pendingData = buffered.ToArray();
+            }
+        }
+
+        Console.WriteLine(
+            $"[DIAG RESTORE] Selected serial={serialNumber}; " +
+            $"connection={connectionId}; " +
+            $"pendingBytes={pendingData.Length}");
+
+        if (pendingData.Length > 0)
+        {
+            if (IsRunning)
+            {
+                ProcessReceivedBytes(pendingData, connectionId);
+            }
+            else
+            {
+                lock (_bufferLock)
+                {
+                    if (!_pendingReceiveBuffers.TryGetValue(
+                            connectionId, out var existing))
+                    {
+                        existing = new List<byte>();
+                        _pendingReceiveBuffers[connectionId] = existing;
+                    }
+
+                    existing.AddRange(pendingData);
+                }
+            }
+        }
+
+        return true;
+    }
     // Keep the selected diagnostic bound by its serial number, not by a TCP
     // connection ID that changes whenever the Android app reconnects.
     private void OnDeviceIdentified(DiagnosticIdentity identity)
@@ -1289,7 +1380,9 @@ public class DiagnosticService : IDisposable
                         $"new={identity.ConnectionId}");
 
                     if (IsRunning)
-                        ProcessReceivedBytes(pendingBytes.ToArray());
+                        ProcessReceivedBytes(
+                        pendingBytes.ToArray(),
+                        identity.ConnectionId);
                     else
                         _pendingReceiveBuffers[identity.ConnectionId] = pendingBytes;
                 }
@@ -1441,7 +1534,7 @@ public class DiagnosticService : IDisposable
             if (IsRunning &&
                 connectionId == _selectedConnectionId)
             {
-                ProcessReceivedBytes(data);
+                ProcessReceivedBytes(data, connectionId);
                 return;
             }
 
@@ -1471,7 +1564,9 @@ public class DiagnosticService : IDisposable
     }
 
 
-    private void ProcessReceivedBytes(byte[] bytes)
+    private void ProcessReceivedBytes(
+    byte[] bytes,
+    string connectionId)
     {
         try
         {
@@ -1495,7 +1590,7 @@ public class DiagnosticService : IDisposable
 
             _receiveBuffer.AddRange(bytes);
 
-            ProcessReceiveBuffer();
+            ProcessReceiveBuffer(connectionId);
         }
         catch (Exception ex)
         {
@@ -1509,7 +1604,7 @@ public class DiagnosticService : IDisposable
     // MESSAGE BUFFER
     // =========================================================
 
-    private void ProcessReceiveBuffer()
+    private void ProcessReceiveBuffer(string connectionId)
     {
         while (true)
         {
@@ -1546,7 +1641,7 @@ public class DiagnosticService : IDisposable
 
             MessageReceived?.Invoke(message);
 
-            ProcessMessage(message);
+            ProcessMessage(message, connectionId);
         }
     }
 
@@ -1710,7 +1805,9 @@ public class DiagnosticService : IDisposable
     //        "[DIAG PARSER] Message ignored: no recognized Type or menu structure.");
     //}
 
-    private void ProcessMessage(string message)
+    private void ProcessMessage(
+    string message,
+    string connectionId)
     {
         string[] parts = ParseMessage(message);
 
@@ -1750,7 +1847,8 @@ public class DiagnosticService : IDisposable
 
             Console.WriteLine(
                 $"[DIAG PARSER] Standard message. TYPE = [{type}]");
-
+            lock (_bufferLock)
+                _recoveryPendingConnections.Remove(connectionId);
             DiagnosticDataReceived?.Invoke(parts);
             return;
         }
@@ -1760,13 +1858,31 @@ public class DiagnosticService : IDisposable
         {
             Console.WriteLine(
                 "[DIAG PARSER] Untyped menu response normalized.");
-
+            lock (_bufferLock)
+                _recoveryPendingConnections.Remove(connectionId);
             DiagnosticDataReceived?.Invoke(normalized);
             return;
         }
 
         Console.WriteLine(
-            "[DIAG PARSER] Message ignored: unrecognized structure.");
+                "[DIAG PARSER] Message ignored: unrecognized structure.");
+
+                    if (string.IsNullOrWhiteSpace(connectionId))
+                        return;
+
+                    lock (_bufferLock)
+                    {
+                        // اگر برای این اتصال قبلاً درخواست بازیابی ارسال شده
+                        // و هنوز پاسخ شناخته‌شده‌ای نرسیده، دوباره ارسال نکن.
+                        if (!_recoveryPendingConnections.Add(connectionId))
+                        {
+                            Console.WriteLine(
+                                $"[DIAG RECOVERY] Already pending for connection={connectionId}");
+                            return;
+                        }
+                    }
+
+        _ = SendRecoveryCommandAsync(connectionId);
     }
 
 
@@ -1913,7 +2029,39 @@ public class DiagnosticService : IDisposable
     //    return true;
     //}
 
+    private async Task SendRecoveryCommandAsync(string connectionId)
+    {
+        try
+        {
+            if (!_tcpServer.GetConnectedClients()
+                .Any(c => c.ConnectionId == connectionId))
+            {
+                Console.WriteLine(
+                    $"[DIAG RECOVERY] Connection disconnected: {connectionId}");
 
+                lock (_bufferLock)
+                    _recoveryPendingConnections.Remove(connectionId);
+
+                return;
+            }
+
+            byte[] data = Encoding.ASCII.GetBytes("-10\n");
+
+            await _tcpServer.SendAsync(connectionId, data);
+
+            Console.WriteLine(
+                $"[DIAG RECOVERY] Sent -10 to connection={connectionId}; " +
+                $"HEX={Convert.ToHexString(data)}");
+        }
+        catch (Exception ex)
+        {
+            lock (_bufferLock)
+                _recoveryPendingConnections.Remove(connectionId);
+
+            Console.WriteLine(
+                $"[DIAG RECOVERY] Failed for connection={connectionId}: {ex.Message}");
+        }
+    }
     private bool TryNormalizeUntypedMenu(
         string[] parts,
         out string[] normalized)
@@ -2279,50 +2427,18 @@ public class DiagnosticService : IDisposable
     // SEND RAW HEX
     // =========================================================
 
-    //public async Task SendHexAsync(
-    //    string hex)
-    //{
-    //    if (string.IsNullOrWhiteSpace(hex))
-    //        return;
-
-    //    string cleaned =
-    //        hex
-    //            .Replace(" ", "")
-    //            .Replace("-", "")
-    //            .Replace("\r", "")
-    //            .Replace("\n", "");
-
-    //    if (string.IsNullOrWhiteSpace(cleaned))
-    //        return;
-
-    //    byte[] data;
-
-    //    try
-    //    {
-    //        data =
-    //            Convert.FromHexString(
-    //                cleaned);
-    //    }
-    //    catch (FormatException)
-    //    {
-    //        Console.WriteLine(
-    //            "Invalid HEX data.");
-
-    //        return;
-    //    }
-
-    //    await _tcpServer.SendAsync(data);
-    //}
-    public async Task SendHexAsync(string hex)
+    public async Task SendHexAsync(
+        string hex)
     {
         if (string.IsNullOrWhiteSpace(hex))
             return;
 
-        string cleaned = hex
-            .Replace(" ", "")
-            .Replace("-", "")
-            .Replace("\r", "")
-            .Replace("\n", "");
+        string cleaned =
+            hex
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("\r", "")
+                .Replace("\n", "");
 
         if (string.IsNullOrWhiteSpace(cleaned))
             return;
@@ -2331,31 +2447,63 @@ public class DiagnosticService : IDisposable
 
         try
         {
-            data = Convert.FromHexString(cleaned);
+            data =
+                Convert.FromHexString(
+                    cleaned);
         }
         catch (FormatException)
         {
-            Console.WriteLine("Invalid HEX data.");
+            Console.WriteLine(
+                "Invalid HEX data.");
+
             return;
         }
 
-        var connectionId = _selectedConnectionId;
-
-        if (string.IsNullOrWhiteSpace(connectionId))
-        {
-            throw new InvalidOperationException(
-                "No diagnostic connection has been selected.");
-        }
-
-        if (!_tcpServer.GetConnectedClients()
-            .Any(c => c.ConnectionId == connectionId))
-        {
-            throw new InvalidOperationException(
-                "The selected diagnostic connection is disconnected.");
-        }
-
-        await _tcpServer.SendAsync(connectionId, data);
+        await _tcpServer.SendAsync(data);
     }
+    //public async Task SendHexAsync(string hex)
+    //{
+    //    if (string.IsNullOrWhiteSpace(hex))
+    //        return;
+
+    //    string cleaned = hex
+    //        .Replace(" ", "")
+    //        .Replace("-", "")
+    //        .Replace("\r", "")
+    //        .Replace("\n", "");
+
+    //    if (string.IsNullOrWhiteSpace(cleaned))
+    //        return;
+
+    //    byte[] data;
+
+    //    try
+    //    {
+    //        data = Convert.FromHexString(cleaned);
+    //    }
+    //    catch (FormatException)
+    //    {
+    //        Console.WriteLine("Invalid HEX data.");
+    //        return;
+    //    }
+
+    //    var connectionId = _selectedConnectionId;
+
+    //    if (string.IsNullOrWhiteSpace(connectionId))
+    //    {
+    //        throw new InvalidOperationException(
+    //            "No diagnostic connection has been selected.");
+    //    }
+
+    //    if (!_tcpServer.GetConnectedClients()
+    //        .Any(c => c.ConnectionId == connectionId))
+    //    {
+    //        throw new InvalidOperationException(
+    //            "The selected diagnostic connection is disconnected.");
+    //    }
+
+    //    await _tcpServer.SendAsync(connectionId, data);
+    //}
 
     // =========================================================
     // START
@@ -2408,7 +2556,7 @@ public class DiagnosticService : IDisposable
                 Console.WriteLine(
                     $"[DIAG BUFFER] Processing {bufferedData.Length} cached TCP bytes.");
 
-                ProcessReceivedBytes(bufferedData);
+                ProcessReceivedBytes(bufferedData, connectionId);
             }
         }
     }
