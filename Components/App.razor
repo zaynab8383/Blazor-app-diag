@@ -16,10 +16,17 @@
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
+    @* <Routes @rendermode="InteractiveServer" />
     <script src="js/customer-auth.js"></script>
     <script src="js/operator-auth.js"></script>
+    <script src="_framework/blazor.web.js"></script> *@
+    
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <script src="js/customer-auth.js"></script>
+    <script src="js/diagnostic-selection.js"></script>
+    <script src="js/operator-auth.js"></script>
     <script src="_framework/blazor.web.js"></script>
+
 </body>
 
 </html>

@@ -13,8 +13,7 @@
 @inject NavigationManager Navigation
 @inject DiagnosticService DiagnosticService
 @inject DiagnosticMenuService MenuService
-@* @inject DiagnosticService DiagnosticService
-@inject DiagnosticMenuService DiagnosticMenuService *@
+@inject IJSRuntime JS
 
 <PageTitle>دیاگ‌های من</PageTitle>
 
@@ -292,6 +291,20 @@ else
                     "اتصال دیاگ برقرار نیست یا شناسایی آن کامل نشده است.";
                 return;
             }
+
+            // DiagnosticService.SelectConnection(
+            //     onlineDevice.ConnectionId);
+
+            // DiagnosticService.Start();
+
+            // selectedDevice = device;
+            // selectedConnectionId = onlineDevice.ConnectionId;
+
+            // Navigation.NavigateTo("/");
+            // ذخیره شماره سریال برای بازیابی انتخاب بعد از رفرش مرورگر
+            await JS.InvokeVoidAsync(
+                "diagnosticSelection.saveSerial",
+                device.SerialNumber);
 
             DiagnosticService.SelectConnection(
                 onlineDevice.ConnectionId);

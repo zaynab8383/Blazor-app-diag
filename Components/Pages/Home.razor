@@ -4,7 +4,7 @@
 
 @using MyBlazorApp1.Services
 @using Microsoft.AspNetCore.Authorization
-
+@using Microsoft.JSInterop
 
 
 @implements IDisposable
@@ -12,7 +12,8 @@
 @inject DiagnosticService DiagnosticService
 @inject DiagnosticMenuService MenuService
 @inject DiagnosticTcpServerService TcpServer
-
+@inject IJSRuntime JS
+@inject OnlineDiagnosticDiscoveryService DiscoveryService
 
 <div class="diagnostic-container">
 
@@ -1996,4 +1997,115 @@
         TcpServer.LogReceived -=
             OnTcpLogReceived;
     }
+    private bool _restoreAttempted;
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (!firstRender || _restoreAttempted)
+    //         return;
+
+    //     _restoreAttempted = true;
+
+    //     try
+    //     {
+    //         string? serialNumber = await JS.InvokeAsync<string?>(
+    //             "diagnosticSelection.getSerial");
+
+    //         if (string.IsNullOrWhiteSpace(serialNumber))
+    //         {
+    //             Console.WriteLine(
+    //                 "[DIAG RESTORE] No saved diagnostic serial.");
+    //             return;
+    //         }
+
+    //         Console.WriteLine(
+    //             $"[DIAG RESTORE] Saved serial = [{serialNumber}]");
+
+    //         var onlineDevice =
+    //             DiscoveryService.GetOnlineDeviceBySerialNumber(
+    //                 serialNumber);
+
+    //         if (onlineDevice is null)
+    //         {
+    //             Console.WriteLine(
+    //                 $"[DIAG RESTORE] Device [{serialNumber}] is not online.");
+    //             return;
+    //         }
+
+    //         Console.WriteLine(
+    //             $"[DIAG RESTORE] Matching connection = [{onlineDevice.ConnectionId}]");
+    //         DiagnosticService.SelectConnection(onlineDevice.ConnectionId);
+    //         DiagnosticService.Start();
+
+ 
+    //         Console.WriteLine(
+    //             $"[DIAG RESTORE] Connection selected = [{onlineDevice.ConnectionId}]");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(
+    //             $"[DIAG RESTORE] Restore lookup failed: {ex}");
+    //     }
+    // }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _restoreAttempted)
+            return;
+
+        _restoreAttempted = true;
+
+        try
+        {
+            string? serialNumber = await JS.InvokeAsync<string?>(
+                "diagnosticSelection.getSerial");
+
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                Console.WriteLine(
+                    "[DIAG RESTORE] No saved diagnostic serial.");
+                return;
+            }
+
+            Console.WriteLine(
+                $"[DIAG RESTORE] Saved serial = [{serialNumber}]");
+
+            var onlineDevice =
+                DiscoveryService.GetOnlineDeviceBySerialNumber(
+                    serialNumber);
+
+            if (onlineDevice is null)
+            {
+                Console.WriteLine(
+                    $"[DIAG RESTORE] Device [{serialNumber}] is not online.");
+                return;
+            }
+
+            Console.WriteLine(
+                $"[DIAG RESTORE] Matching connection = " +
+                $"[{onlineDevice.ConnectionId}]");
+
+            // Restore the selected diagnostic connection.
+            DiagnosticService.SelectConnection(
+                onlineDevice.ConnectionId);
+
+            Console.WriteLine(
+                $"[DIAG RESTORE] Connection selected = " +
+                $"[{onlineDevice.ConnectionId}]");
+
+            // OnInitializedAsync already starts the service when needed.
+            // Request the current screen after selecting the connection.
+            await DiagnosticService.SendAsync("-10");
+
+            Console.WriteLine(
+                $"[DIAG RESTORE] Current-screen request sent to " +
+                $"[{onlineDevice.ConnectionId}]");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[DIAG RESTORE] Restore failed: {ex}");
+        }
+    }
+
 }
