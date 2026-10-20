@@ -1,0 +1,366 @@
+﻿/* =========================================================
+   Customer pages - common styles
+   ========================================================= */
+.customer-page,
+.customer-login-page {
+    direction: rtl;
+    text-align: right;
+    box-sizing: border-box;
+}
+
+    .customer-page *,
+    .customer-login-page * {
+        box-sizing: border-box;
+    }
+
+    /* =========================================================
+   Text alignment
+   All written content is right-aligned by default
+   ========================================================= */
+
+    .customer-page h1,
+    .customer-page h2,
+    .customer-page h3,
+    .customer-page h4,
+    .customer-page h5,
+    .customer-page h6,
+    .customer-page p,
+    .customer-page label,
+    .customer-page span,
+    .customer-page strong,
+    .customer-page small,
+    .customer-page li,
+    .customer-page th,
+    .customer-page td,
+    .customer-page .card-title,
+    .customer-page .card-text,
+    .customer-login-page h1,
+    .customer-login-page h2,
+    .customer-login-page h3,
+    .customer-login-page h4,
+    .customer-login-page h5,
+    .customer-login-page h6,
+    .customer-login-page p,
+    .customer-login-page label,
+    .customer-login-page span,
+    .customer-login-page strong,
+    .customer-login-page small,
+    .customer-login-page li,
+    .customer-login-page .alert {
+        text-align: right;
+    }
+
+/* =========================================================
+   Customer login page
+   ========================================================= */
+
+.customer-login-page {
+    width: 100%;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+    .customer-login-page h3 {
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+
+    .customer-login-page .alert,
+    .customer-page .alert {
+        direction: rtl;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+/* =========================================================
+   Customer diagnostics page
+   ========================================================= */
+
+.customer-diagnostics-page {
+    width: 100%;
+    min-width: 0;
+}
+
+    .customer-diagnostics-page > h3:first-child {
+        margin-bottom: 1.25rem;
+    }
+
+    /* Device cards */
+
+    .customer-diagnostics-page .card {
+        height: 100%;
+        text-align: right;
+    }
+
+    .customer-diagnostics-page .card-body {
+        direction: rtl;
+        text-align: right;
+    }
+
+    .customer-diagnostics-page .card-title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    /* Bootstrap row and columns retain their normal layout */
+    .customer-diagnostics-page .row {
+        direction: rtl;
+    }
+
+    /* Status text */
+
+    .customer-diagnostics-page .text-success,
+    .customer-diagnostics-page .text-secondary {
+        font-weight: 600;
+    }
+
+    /* =========================================================
+   Diagnostic menu
+   ========================================================= */
+
+    .customer-diagnostics-page h4,
+    .customer-diagnostics-page h5,
+    .customer-diagnostics-page h6 {
+        text-align: right;
+    }
+
+    .customer-diagnostics-page hr {
+        margin-top: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+/* =========================================================
+   Inputs
+   ========================================================= */
+
+.customer-page input,
+.customer-page textarea,
+.customer-page select,
+.customer-login-page input,
+.customer-login-page textarea,
+.customer-login-page select {
+    direction: rtl;
+    text-align: right;
+    width: 100%;
+}
+
+    .customer-page input::placeholder,
+    .customer-page textarea::placeholder,
+    .customer-login-page input::placeholder,
+    .customer-login-page textarea::placeholder {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* One-time password */
+
+    .customer-login-page input#otp {
+        direction: ltr;
+        text-align: center;
+    }
+
+/* =========================================================
+   Buttons
+   Keep all button labels centered
+   ========================================================= */
+
+.customer-page button,
+.customer-page .btn,
+.customer-login-page button,
+.customer-login-page .btn {
+    text-align: center;
+    justify-content: center;
+}
+
+/* Menu options: full width, centered label */
+
+.customer-diagnostics-page .btn.d-block {
+    display: block;
+    width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Full-width login buttons */
+
+.customer-login-page .btn.w-100 {
+    display: block;
+    width: 100%;
+}
+
+/* =========================================================
+   Optional centered elements
+   ========================================================= */
+
+.customer-login-page .customer-login-heading,
+.customer-login-page .customer-login-icon,
+.customer-login-page .customer-login-footnote,
+.customer-page .customer-state,
+.customer-page .customer-empty-icon,
+.customer-page .customer-loader {
+    text-align: center;
+}
+
+/* =========================================================
+   Tables, images and long content
+   ========================================================= */
+
+.customer-page table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.customer-page img,
+.customer-page svg {
+    max-width: 100%;
+}
+
+.customer-page pre,
+.customer-page code {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+/* =========================================================
+   Responsive layout
+   ========================================================= */
+
+@media (max-width: 576px) {
+    .customer-login-page {
+        max-width: 100%;
+        margin-top: 1.5rem !important;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .customer-diagnostics-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+        .customer-diagnostics-page .card-body {
+            padding: 1rem;
+        }
+}
+
+
+
+/* =========================================================
+   Customer diagnostics - centered page layout
+   ========================================================= */
+.customer-diagnostics-page {
+    width: calc(100% - 32px);
+    max-width: 1100px;
+    margin: 32px auto !important;
+    padding: 24px;
+    direction: rtl;
+    text-align: right;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+/* Page title */
+.customer-diagnostics-page > h3:first-child {
+    margin: 0 0 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+/* Introductory text */
+.customer-diagnostics-page > p {
+    margin-bottom: 18px;
+    line-height: 1.9;
+    text-align: right;
+}
+
+/* Device cards grid */
+.customer-diagnostics-page .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Individual device card */
+.customer-diagnostics-page .card {
+    height: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+    .customer-diagnostics-page .card:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+.customer-diagnostics-page .card-body {
+    padding: 22px;
+    text-align: right;
+}
+
+.customer-diagnostics-page .card-title {
+    margin-bottom: 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.customer-diagnostics-page .card p {
+    margin-bottom: 12px;
+    line-height: 1.8;
+    text-align: right;
+}
+
+/* Buttons */
+.customer-diagnostics-page button,
+.customer-diagnostics-page .btn {
+    text-align: center;
+}
+
+.customer-diagnostics-page > .btn {
+    margin-top: 12px;
+}
+
+/* Diagnostic menu section */
+.customer-diagnostics-page > hr {
+    margin: 28px 0;
+}
+
+.customer-diagnostics-page h4,
+.customer-diagnostics-page h5,
+.customer-diagnostics-page h6 {
+    margin-top: 18px;
+    margin-bottom: 14px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.customer-diagnostics-page .btn.d-block {
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 10px;
+    padding: 10px 16px;
+    white-space: normal;
+}
+
+/* Mobile layout */
+@media (max-width: 576px) {
+    .customer-diagnostics-page {
+        width: calc(100% - 20px);
+        margin: 12px auto !important;
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+        .customer-diagnostics-page .card-body {
+            padding: 16px;
+        }
+}
+

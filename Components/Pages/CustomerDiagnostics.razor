@@ -15,9 +15,11 @@
 @inject DiagnosticMenuService MenuService
 @inject IJSRuntime JS
 
+
 <PageTitle>دیاگ‌های من</PageTitle>
 
-<h3>دیاگ‌های من</h3>
+<div class="customer-page customer-diagnostics-page">
+    <h3>دیاگ‌های من</h3>
 
 @if (loading)
 {
@@ -191,6 +193,7 @@ else
         }
     }
 }
+</div>
 
 @code {
     private DiagnosticService? _customerDiagnosticService;
