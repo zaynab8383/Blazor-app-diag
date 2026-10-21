@@ -92,7 +92,7 @@
             text-align: right !important;
         }
 
-        /* دکمه‌ها وسط‌چین بمانند */
+
         .customer-page button,
         .customer-login-page button,
         .customer-page .customer-btn,
@@ -100,14 +100,13 @@
             text-align: center !important;
         }
 
-        /* عنوان و آیکون سربرگ ورود وسط‌چین بمانند */
+
         .customer-login-page .customer-login-heading,
         .customer-login-page .customer-login-icon,
         .customer-login-page .customer-login-footnote {
             text-align: center !important;
         }
 
-        /* ورودی‌ها راست‌چین باشند */
         .customer-page input,
         .customer-page textarea,
         .customer-login-page input,
@@ -116,7 +115,6 @@
             text-align: right !important;
         }
 
-        /* پیام بارگذاری و حالت خالی وسط‌چین بمانند */
         .customer-page .customer-state,
         .customer-page .customer-empty-icon,
         .customer-page .customer-loader {
@@ -188,8 +186,6 @@
                 phoneNumber.Trim(),
                 otpCode.Trim());
 
-            // بارگذاری کامل صفحه باعث می‌شود درخواست جدید
-            // با کوکی احراز هویت مرورگر ارسال شود.
             Navigation.NavigateTo("/customer/diagnostics", forceLoad: true);
         }
         catch (Exception ex)
